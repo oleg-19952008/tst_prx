@@ -73,6 +73,24 @@ public sealed class ProxyConfig
     public bool ForceTestDc { get; set; }
 
     /// <summary>
+    /// Console stats reporter cadence in seconds (PORT_PLAN.md §3 item 8 — the
+    /// periodic "stats: ..." INFO line that replaces the GUI dashboard window).
+    /// Python hard-codes 60 s in <c>tg_ws_proxy.py::log_stats</c>; here it is a
+    /// config knob with the same default. Values &lt;= 0 disable the report.
+    /// </summary>
+    [Range(-1, 86_400)]
+    public int StatsIntervalSec { get; set; } = 60;
+
+    /// <summary>
+    /// WS network-debug flow dump cadence in seconds (Python
+    /// <c>network_debug.log_ws_flow</c> called from the 5 s reporter loop).
+    /// Only produces output while Debug logging is enabled. Values &lt;= 0
+    /// disable the flow dump.
+    /// </summary>
+    [Range(-1, 86_400)]
+    public int FlowDebugIntervalSec { get; set; } = 5;
+
+    /// <summary>
     /// Python property <c>h2_enabled</c>:
     /// <c>cfproxy_h2_media and fallback_cfproxy and not disable_secure and not force_test_dc</c>.
     /// </summary>

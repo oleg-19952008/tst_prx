@@ -66,6 +66,12 @@ public sealed class ProxyConfigValidator : IValidateOptions<ProxyConfig>, IPostC
                 failures.Add($"CF proxy domain \"{domain}\" is not a valid hostname.");
         }
 
+        // Console reporter cadences (PORT_PLAN.md §3 item 8); <=0 disables.
+        if (options.StatsIntervalSec is < -1 or > 86_400)
+            failures.Add($"Proxy:StatsIntervalSec must be -1..86400 seconds (got {options.StatsIntervalSec}).");
+        if (options.FlowDebugIntervalSec is < -1 or > 86_400)
+            failures.Add($"Proxy:FlowDebugIntervalSec must be -1..86400 seconds (got {options.FlowDebugIntervalSec}).");
+
         if (!string.IsNullOrEmpty(options.FakeTlsDomain) && !IsValidDomain(options.FakeTlsDomain))
             failures.Add($"Proxy:FakeTlsDomain \"{options.FakeTlsDomain}\" is not a valid hostname.");
 
