@@ -1,0 +1,64 @@
+{
+  "secret": "00112233445566778899aabbccddeeff",
+  "cases": [
+    {
+      "handshake": "5cd6dc9562b52881010ec629e2bb39d723fee49475d77fd94afe2d6beb4c26e8267fe2383169227ce8d5fdcced6f53ac2f04c0917007ab9f9e534ab81928130e",
+      "dc_id": 2,
+      "is_media": false,
+      "proto_tag": "efefefef",
+      "dec_prekey_and_iv": "010ec629e2bb39d723fee49475d77fd94afe2d6beb4c26e8267fe2383169227ce8d5fdcced6f53ac2f04c0917007ab9f",
+      "wrong_secret_returns_none": true,
+      "dec_key_sha256": "3d911d847fd1886cbc0d3604c675facd8781a0f8f106add90aa4048aaa48fc47",
+      "keystream_64": "e5f5067aca3632baaa8e916f85562ff7dc635415840c4127c8e5c4e083300218289783e1981d15a917dd05811bb8eb52ea7948d4990aa4c271bca5571b289476",
+      "client_init_reencrypted": "b923daefa8831a3bab80574667ed1620ff9db081f1db3efe821be98b687c24f00ee861d9a97437d5ff08f84df6d7b8fec57d8845e90d0f5defefefef02008778"
+    },
+    {
+      "handshake": "26ffdb5c820ea575abddac50f07044177251a0455201111feadbeebb01b30c5bb4372a826a6c698ec093193a5736ee2667bf0cae6d72f1d50793e18a75163107",
+      "dc_id": 4,
+      "is_media": false,
+      "proto_tag": "eeeeeeee",
+      "dec_prekey_and_iv": "abddac50f07044177251a0455201111feadbeebb01b30c5bb4372a826a6c698ec093193a5736ee2667bf0cae6d72f1d5",
+      "wrong_secret_returns_none": true,
+      "dec_key_sha256": "72458df0979591ad9b39df6cf1ab532ed5910ce15011bb25a0168e029888650e",
+      "keystream_64": "2e21299c397560e23c18469fb173805b1bb1f1e8e25013ecbe33010c81a249365bbc758949a2b1009137471f6e084fc2dc86be14f65f1ea7e97d0f64711664dd",
+      "client_init_reencrypted": "08def2c0bb7bc59797c5eacf4103c44c69e051adb05102f354e8efb78011456def8b5f0b23ced88e51a45e25393ea1e4bb39b2ba9b2def72eeeeeeee040055da"
+    },
+    {
+      "handshake": "410c73dc184b5bbb6b83cfbb4a82cc04e369afa5c850c1adb15d2366cd3bf4b36dbec787506b4c9a1198f2353f27c31860223127dc022d9658c53063766cf151",
+      "dc_id": 5,
+      "is_media": true,
+      "proto_tag": "dddddddd",
+      "dec_prekey_and_iv": "6b83cfbb4a82cc04e369afa5c850c1adb15d2366cd3bf4b36dbec787506b4c9a1198f2353f27c31860223127dc022d96",
+      "wrong_secret_returns_none": true,
+      "dec_key_sha256": "35dfc5e56eb06d7041aff10684e37df701b25cd7ab46bae51eeb04994e63d5d1",
+      "keystream_64": "5790b4a30b136067411c411b7a6bc30f66219d4523b9de6b9eb0c0043804cca6c15b039d544822f953d722e04eadbe7ec0ca576cffb446f28518edbe8d937230",
+      "client_init_reencrypted": "169cc77f13583bdc2a9f8ea030e90f0b854832e0ebe91fc62fede362f53f3815ace5c41a04236e63424fd0d5718a7d66a0e8664b23b66b64ddddddddfbff8361"
+    },
+    {
+      "handshake": "06aa9327007a5faf67f634f5c18721aa010d25da59b942fba7ff95e302934e2994607b23bcfe43eba591db52dabe733fd885751c11948d3f78fc319d786331f5",
+      "dc_id": 10001,
+      "is_media": false,
+      "proto_tag": "dddddddd",
+      "dec_prekey_and_iv": "67f634f5c18721aa010d25da59b942fba7ff95e302934e2994607b23bcfe43eba591db52dabe733fd885751c11948d3f",
+      "wrong_secret_returns_none": true,
+      "dec_key_sha256": "5ad9acbe4e9509c63af4fc9a2b32687c5c90d6bfef84873d9f97a1cce5977b6e",
+      "keystream_64": "d5639d9565057e6ec0c548ef42e00f5382aacad04e74baef8b0dba13fe8650f38b6c9adb1f9164fb3de76cfb007caa0212690bfcc0446350a521ec4069440687",
+      "client_init_reencrypted": "d3c90eb2657f21c1a7337c1a83672ef983a7ef0a17cdf8142cf22ff0fc151eda1f0ce1f8a36f27109876b7a9dac2d93dcaec7ee0d1d0ee6fdddddddd11273772"
+    },
+    {
+      "handshake": "1f0da9e420d43b349453a1849d322bb037b7f916525f39220cfff4cb3e9802dfd41f5cc82eb2a8d84fb4f2b39dba53be2e8d8aabe1935bc6ceaae397bd0a7464",
+      "dc_id": 1,
+      "is_media": true,
+      "proto_tag": "efefefef",
+      "dec_prekey_and_iv": "9453a1849d322bb037b7f916525f39220cfff4cb3e9802dfd41f5cc82eb2a8d84fb4f2b39dba53be2e8d8aabe1935bc6",
+      "wrong_secret_returns_none": true,
+      "dec_key_sha256": "786af0bf95ce3774ca3c8670930130af38c23961c46bddef92c053b296861fd6",
+      "keystream_64": "f2b1d59a08ffe198c4024507688dc9189c445a0197d108b36417b2b9ac727d22cb011d663a37108fa61f054885d0f098db1fecadecc820d221450c7842f51c04",
+      "client_init_reencrypted": "edbc7c7e282bdaac5051e483f5bfe2a8abf3a317c58e319168e8467292ea7ffd1f1e41ae1485b857e9abf7fb186aa326f59266060d5b7b14efefefefffff6860"
+    },
+    {
+      "handshake": "5cd6dc9562b52881010ec629e2bb39d723fee49475d77fd94afe2d6beb4c26e8267fe2383169227ce8d5fdcced6f53ac2f04c0917007ab9f9e534ab8192813",
+      "expect_none": true
+    }
+  ]
+}

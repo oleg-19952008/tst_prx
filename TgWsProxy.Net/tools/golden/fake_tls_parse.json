@@ -1,0 +1,125 @@
+{
+  "cases": [
+    {
+      "input": "16030100810100007d03030d1f5b2c9e91b6a0a1cd5756c0319423fb69aa6fd0a7bb989e4f2f62a9c9d73e20aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00041301130301000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "cipher_suites": [
+        4865,
+        4867
+      ],
+      "key_shares": {
+        "29": 32
+      }
+    },
+    {
+      "input": "16030105430100053f0303fabb4a5cdba3b691d7036ad0bcef41cc0abf5b6fb19b30199d92aac04578080420bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb00021301010004f4002b00020304003304ea04e811ec04c0ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed59986ab84bc56a155ebcff03023a77b84493f1ae33f9d8585edfb8425a2aff49abee185d5dc08bcae7e5478cfd3e650468b8f9ac9a66ab2d64878f8a5f6f993becae3724d38ef7a330635a241067467d2dc99b88d4f2bb6c31a06c9742f7865ed32d742190f463775fb8723e4228b94ea474b72cf4f6b10776a38a3a8613a4206edf9ff05dd9940851e95a932dfcd9c50012c37d0b568428bbc576a04dc90cf880935d40349c1290d212e3feb7972944a61d8bcfc5c6391dcd849821b1e190a82a36bab228a84576c0b7a472b7b189a90042b27c187ab591e44f6b8cc14af0fc9b253cb0ca4370e4deac11a1f2767d094a8e595cc7e20135582884606e2d1f85a152973a36c9f149eb5263e9f651f0c65f0fe870c070be6c3e78eef562838bffbb389752ba22d5f5e4bfdee576f9dfbdf0fbbbed299fe8455ca7e8dbd03b2cfef7d93b8e7a7cc241c4ac4a7902f5b939451832ad8cb45e6e1ca643dc486b7d466b1e57ea265bbc50db63947d6946052fa630cf163e5c93dc74ab29dbfb0e6f42b2ff2e13cfb2f4d1fe36ceab20a4d67fc740b8da0a68c456a25d7a384a5f888a14f008758f1c620b4a3d37d3b8956bbf99c7b08c448f8dd3170ac8b3b3dcf6d4d303a835a29fc8cdddab5b67ec23d85f0260964aa08bf97e9b1f0af89b011f90f49c9e4038df7ad6e3368e199d0119522387dbc1991f7c6d803d34c12b9194697c70260d101faf5c0f8ab3feb428623b93f05177957fa6f8b70ef89cbf3904a92dc656bccca2e622cfa655bac1ff1eae82465758c5972967a6362b92c99621f979adb4de9542c7c6ae721e7a56c99ee76e8da493bc0f4586ec45752c884eea174e208bd92aad89c33399bba7b163d269ffc4393804ea8400a97a82f60d783d92be3a8988b1cf5aa5609c25383aed11a3af1ad6c0142c47bf7ad1078e3fe478a278437c7c5970ec1e3b55739343b60060014dfef4974f419178665f475415b4bbd665dc2fd985f22dbf77b09de72fb7dcb22d1289d671f147282b905b42dd3924304a0456a53351ff46f913810c0e11e4b36e3f1149290800105e63ee024b85278f3879b94e5fdd1c5c9ab0886931e08425eb4e84d6632e4f495f7abdde5012cbe77c1f38eb8b9a45b5107b06dbcacec2fbadd4cb93c19d990b0ee8eebf8abba8638568b0f7d1feefcb56d464b91170a60fba2b23fa3506e12932b9edb20136b0ded2c2e5abb61ca448cc13b4492bc6c2d39561e6b83df4a8aca7719fdc9d6ebefdfe7409b07b3d195b3a014f21dfca87a30542126ff4642fe1c4124fa2444d2d64d21c9a75a97f0b42017742b2a7c39e1976b95d0a10eff4ea686a67a9204b2fabfc1177b6c56d68b93f8b991caca96c1bc19979134f7fe20eca0aa4feadf6fa00a28d72432c0d51b7705d3b3636ab68c1a81eb58704ab0fcf96c410ad045bd109817a98af4c5d41f79b9d461168560ab8e3964bdac8b748b29861ccaa6438440255bc2235a7a4a69d01364f09b1c29d8907c8127c7cf109c13b4b9ce78cdd1b1480383104b5f98989b917f36b6c124a478796c63f72f202fe055396bb91009b85157109798188dabe92789346cc29ae76eb000c4a2e38534cfb665c18d3e17a99fe7a4b0c456e36cc3235fa38800392f1f12fd91b1e1b6f83f9fbc0a707c0fc5ac001d002089917d756c2c2b1092a80df516fc4183470ab4b3331c92ae815f907979e72068",
+      "cipher_suites": [
+        4865
+      ],
+      "key_shares": {
+        "4588": 1216,
+        "29": 32
+      }
+    },
+    {
+      "input": "16030100810100007d03030d1f5b2c9e91b6a0a1cd5756c0319423fb69aa6fd0a7bb989e4f2f62a9c9d73e20aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaffff1301130301000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "cipher_suites": [],
+      "key_shares": {},
+      "expect_empty_info": true
+    },
+    {
+      "input": "16030100810100007d03030d1f5b2c9e91b6a0a1cd5756c0319423fb69aa6fd0a7bb989e4f2f62a9c9d73e20aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cipher_suites": [],
+      "key_shares": {},
+      "expect_empty_info": true
+    },
+    {
+      "input": "160301007f0100007b0303eaae50e5e6fa6538f47938b31266eaa9762bc77228d5ede2738314f49046a81820cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc0002130201000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "cipher_suites": [
+        4866
+      ],
+      "key_shares": {
+        "29": 32
+      },
+      "expected_info": [
+        [
+          4866
+        ],
+        {
+          "29": 32
+        }
+      ]
+    },
+    {
+      "input": "16030100810100007d0303fac9b01194b4869bb56216f3dc84a4473427639214e297bf780bbdf00c78434620cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc00041303130201000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "cipher_suites": [
+        4866,
+        4867
+      ],
+      "key_shares": {
+        "29": 32
+      },
+      "expected_info": [
+        [
+          4866,
+          4867
+        ],
+        {
+          "29": 32
+        }
+      ]
+    },
+    {
+      "input": "160301007f0100007b03033340237ef9584f8a65fd3ed8452df431212258ba72d96860a5246596aad964b020cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc0002c02f01000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "cipher_suites": [
+        49199
+      ],
+      "key_shares": {
+        "29": 32
+      },
+      "expected_info": [
+        [
+          49199
+        ],
+        {
+          "29": 32
+        }
+      ]
+    },
+    {
+      "input": "160301007f0100007b03038ff3b5000e47a352440316857715ada49f7790fbcf6ddf716ffe46cb6067b0a820cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc0002130101000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "cipher_suites": [
+        4865
+      ],
+      "key_shares": {
+        "29": 32
+      },
+      "expected_info": [
+        [
+          4865
+        ],
+        {
+          "29": 32
+        }
+      ]
+    },
+    {
+      "input": "16030100810100007d03035404e909851130d912b1d0020ded1ef5a3d1cc365f6cf3cffde2aec53368c05320cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc00041301130301000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "cipher_suites": [
+        4865,
+        4867
+      ],
+      "key_shares": {
+        "29": 32
+      },
+      "expected_info": [
+        [
+          4865,
+          4867
+        ],
+        {
+          "29": 32
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "secret": "000102030405060708090a0b0c0d0e0f",
+  "cases": [
+    {
+      "client_hello": "16030100810100007d03030d1f5b2c9e91b6a0a1cd5756c0319423fb69aa6fd0a7bb989e4f2f62a9c9d73e20aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00041301130301000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "valid": true,
+      "client_random": "0d1f5b2c9e91b6a0a1cd5756c0319423fb69aa6fd0a7bb989e4f2f62a9c9d73e",
+      "session_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "timestamp": 1793695751
+    },
+    {
+      "client_hello": "16030100810100007d03030d1f5b2c9e91b6a0a1cd5756c0319423fb69aa6fd0a7bb989e4f2f62b1f5d73e20aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00041301130301000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "expect_none": true
+    },
+    {
+      "client_hello": "16030100810100007d03039b52733b3bcc6206c97f1c64eb05ffa90267aaa342bb4e488f2157d95720cad820aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00041301130301000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "expect_none": true
+    },
+    {
+      "client_hello": "16030100810100007d03030d1f5b2c9e91b6a0a1cd5756c0319423fb69aa6fd0a7bb989e4f2f62a9c9d7",
+      "expect_none": true
+    },
+    {
+      "client_hello": "16030100610100005d0303af14cc4043c058e322cd939a3eaa9b20b9c8726aa58f0edfe6d3af8f3e7628ce0000041301130301000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "valid": true,
+      "client_random": "af14cc4043c058e322cd939a3eaa9b20b9c8726aa58f0edfe6d3af8f3e7628ce",
+      "session_id": "0000000000000000000000000000000000000000000000000000000000000000",
+      "timestamp": 1793695751
+    },
+    {
+      "client_hello": "16030100810100007d03030d1f5b2c9e91b6a0a1cd5756c0319423fb69aa6fd0a7bb989e4f2f6241cad73e20aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa00041301130301000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "expect_none": true
+    },
+    {
+      "client_hello": "160301006901000065030309ee4e0c74cc5b155a9cfd2bc95e680740445afbc127751dd82fbbc01f21df4c08dddddddddddddddd00041301130301000030002b00020304003300260024001d0020ac50316a80d0544b71716da4f7cda8e52629e8fee7c2d3c5fbc90758ca8ed599",
+      "valid": true,
+      "client_random": "09ee4e0c74cc5b155a9cfd2bc95e680740445afbc127751dd82fbbc01f21df4c",
+      "session_id": "0000000000000000000000000000000000000000000000000000000000000000",
+      "timestamp": 1793695751
+    }
+  ]
+}

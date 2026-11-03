@@ -1,0 +1,83 @@
+{
+  "note": "os.urandom replaced by xorshift64* stream seeded 0xFEEDFACE; rejection loop consumes 64-byte draws until first byte != 0xEF, starts not in RESERVED_STARTS and rnd[4:8] != 0000",
+  "cases": [
+    {
+      "proto_tag": "efefefef",
+      "dc_idx": 2,
+      "relay_init": "4dbb108836b010227dddc87699034d831aa19fe0f7cf532b89d76d310a5b6ca48278ed985eaf0a042738b1bffc9f74758a30142d468e813a96d7f60703b84408",
+      "draws": [
+        "4dbb108836b010227dddc87699034d831aa19fe0f7cf532b89d76d310a5b6ca48278ed985eaf0a042738b1bffc9f74758a30142d468e813a11c6ced626acd9d9",
+        "0306"
+      ],
+      "accepted_rnd": "4dbb108836b010227dddc87699034d831aa19fe0f7cf532b89d76d310a5b6ca48278ed985eaf0a042738b1bffc9f74758a30142d468e813a11c6ced626acd9d9"
+    },
+    {
+      "proto_tag": "eeeeeeee",
+      "dc_idx": 4,
+      "relay_init": "650388e23f4853d74bcbf4cfa5fc4d2e3a29001873b58e70756a68e1ed15e862447a2377d7ada5b9ecad256f926fb5611bd65a560903ff400a779bac003e21c5",
+      "draws": [
+        "650388e23f4853d74bcbf4cfa5fc4d2e3a29001873b58e70756a68e1ed15e862447a2377d7ada5b9ecad256f926fb5611bd65a560903ff4041df7ee85b942e22",
+        "cb9c"
+      ],
+      "accepted_rnd": "650388e23f4853d74bcbf4cfa5fc4d2e3a29001873b58e70756a68e1ed15e862447a2377d7ada5b9ecad256f926fb5611bd65a560903ff4041df7ee85b942e22"
+    },
+    {
+      "proto_tag": "dddddddd",
+      "dc_idx": -5,
+      "relay_init": "d7d0fc27c0c776ea9901e6abec55d53a67f14e9e27e12d00722d37f2fdda121524bed6cb783fd018a14149748b0051926cfbeafd93f18b5a455abefe0cc80dcf",
+      "draws": [
+        "d7d0fc27c0c776ea9901e6abec55d53a67f14e9e27e12d00722d37f2fdda121524bed6cb783fd018a14149748b0051926cfbeafd93f18b5a1fa66d734eaef258",
+        "80b4"
+      ],
+      "accepted_rnd": "d7d0fc27c0c776ea9901e6abec55d53a67f14e9e27e12d00722d37f2fdda121524bed6cb783fd018a14149748b0051926cfbeafd93f18b5a1fa66d734eaef258"
+    },
+    {
+      "proto_tag": "dddddddd",
+      "dc_idx": 10002,
+      "relay_init": "f9e14c0c6037ee3180ed900110689ad983773238739be0da52ece2ec9f150ead8b75b274a6785a82aed6acde8bfc505a368b6b57fa46b0bf3365936edd67bbd9",
+      "draws": [
+        "f9e14c0c6037ee3180ed900110689ad983773238739be0da52ece2ec9f150ead8b75b274a6785a82aed6acde8bfc505a368b6b57fa46b0bf9e5deed241a22b43",
+        "c02b"
+      ],
+      "accepted_rnd": "f9e14c0c6037ee3180ed900110689ad983773238739be0da52ece2ec9f150ead8b75b274a6785a82aed6acde8bfc505a368b6b57fa46b0bf9e5deed241a22b43"
+    }
+  ],
+  "replays": [
+    {
+      "proto_tag": "efefefef",
+      "dc_idx": 2,
+      "relay_init": "4dbb108836b010227dddc87699034d831aa19fe0f7cf532b89d76d310a5b6ca48278ed985eaf0a042738b1bffc9f74758a30142d468e813a96d7f60703b84408",
+      "enc_key": "7dddc87699034d831aa19fe0f7cf532b89d76d310a5b6ca48278ed985eaf0a04",
+      "enc_iv": "2738b1bffc9f74758a30142d468e813a",
+      "keystream_tail": "793819e801b8470e",
+      "tail_random_2b": "0306"
+    },
+    {
+      "proto_tag": "eeeeeeee",
+      "dc_idx": 4,
+      "relay_init": "650388e23f4853d74bcbf4cfa5fc4d2e3a29001873b58e70756a68e1ed15e862447a2377d7ada5b9ecad256f926fb5611bd65a560903ff400a779bac003e21c5",
+      "enc_key": "4bcbf4cfa5fc4d2e3a29001873b58e70756a68e1ed15e862447a2377d7ada5b9",
+      "enc_iv": "ecad256f926fb5611bd65a560903ff40",
+      "keystream_tail": "e4997542043eea59",
+      "tail_random_2b": "cb9c"
+    },
+    {
+      "proto_tag": "dddddddd",
+      "dc_idx": -5,
+      "relay_init": "d7d0fc27c0c776ea9901e6abec55d53a67f14e9e27e12d00722d37f2fdda121524bed6cb783fd018a14149748b0051926cfbeafd93f18b5a455abefe0cc80dcf",
+      "enc_key": "9901e6abec55d53a67f14e9e27e12d00722d37f2fdda121524bed6cb783fd018",
+      "enc_iv": "a14149748b0051926cfbeafd93f18b5a",
+      "keystream_tail": "98876323f7378d7b",
+      "tail_random_2b": "80b4"
+    },
+    {
+      "proto_tag": "dddddddd",
+      "dc_idx": 10002,
+      "relay_init": "f9e14c0c6037ee3180ed900110689ad983773238739be0da52ece2ec9f150ead8b75b274a6785a82aed6acde8bfc505a368b6b57fa46b0bf3365936edd67bbd9",
+      "enc_key": "80ed900110689ad983773238739be0da52ece2ec9f150ead8b75b274a6785a82",
+      "enc_iv": "aed6acde8bfc505a368b6b57fa46b0bf",
+      "keystream_tail": "eeb84eb3cf407bf2",
+      "tail_random_2b": "c02b"
+    }
+  ]
+}

@@ -64,7 +64,9 @@ public static class Obfuscated2
     /// </summary>
     public static ClientHandshake? TryHandshake(ReadOnlySpan<byte> handshake, ReadOnlySpan<byte> secret)
     {
-        if (handshake.Length < HandshakeLen)
+        // Python slices without bounds checks: short input yields a wrong-length
+        // prekey and raises in AES — treat anything under 64 bytes as invalid.
+        if (handshake.Length != HandshakeLen)
             return null;
 
         // dec_prekey_and_iv = handshake[SKIP_LEN : SKIP_LEN + PREKEY_LEN + IV_LEN]
@@ -105,9 +107,19 @@ public static class Obfuscated2
     /// Port of <c>tg_ws_proxy._generate_relay_init</c>: random 64-byte init that
     /// avoids reserved prefixes, carrying (proto_tag, dc_idx LE, 2 random bytes)
     /// XOR-encrypted with the keystream tail of its own AES-CTR context.
+    /// <paramref name="dcIdx"/> is truncated to 16 bits like Python's
+    /// <c>struct.pack('&lt;h', ...)</c>.
     /// </summary>
-    public static byte[] GenerateRelayInit(ReadOnlySpan<byte> protoTag, short dcIdx, RandomNumberGenerator? rng = null)
+    public static byte[] GenerateRelayInit(ReadOnlySpan<byte> protoTag, int dcIdx, RandomNumberGenerator? rng = null)
     {
+        ArgumentNullException.ThrowIfNull(protoTag);
+        if (protoTag.Length != 4)
+            throw new ArgumentException("Protocol tag must be 4 bytes", nameof(protoTag));
+
+        // Python: struct.pack('<h', dc_idx) — silently truncates out-of-range ints.
+        Span<byte> dcBytes = stackalloc byte[2];
+        BinaryPrimitives.WriteInt16LittleEndian(dcBytes, unchecked((short)dcIdx));
+
         rng ??= RandomNumberGenerator.Shared;
 
         byte[] rnd;
@@ -127,9 +139,6 @@ public static class Obfuscated2
         // enc_key = rnd[8:40], enc_iv = rnd[40:56] — raw key, no SHA256 (relay side)
         var encKey = rnd.AsSpan(SkipLen, PrekeyLen);
         var encIv = rnd.AsSpan(SkipLen + PrekeyLen, IvLen);
-
-        Span<byte> dcBytes = stackalloc byte[2];
-        BinaryPrimitives.WriteInt16LittleEndian(dcBytes, dcIdx);
 
         var tailPlain = new byte[8];
         protoTag[..4].CopyTo(tailPlain);

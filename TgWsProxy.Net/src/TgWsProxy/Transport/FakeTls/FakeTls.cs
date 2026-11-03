@@ -68,12 +68,33 @@ public sealed record ClientHelloInfo(
 /// <c>proxy/fake_tls.py</c>: ClientHello verification against the obfuscated2
 /// secret, parsing, ServerHello + CCS + ApplicationData first-flight building,
 /// TLS record wrapping and the profiled appdata length.
+/// All randomness flows through a single seam (<see cref="FillRandom"/> /
+/// <see cref="NextInt32"/>) so tests can replay the exact byte stream the
+/// Python golden vectors were generated with (tools/golden/README.md).
 /// </summary>
 public static class FakeTls
 {
     [ThreadStatic]
     private static RandomNumberGenerator? _rng;
-    private static RandomNumberGenerator Rng => _rng ??= RandomNumberGenerator.Create();
+
+    /// <summary>RNG seam: fills <paramref name="buffer"/> like Python <c>os.urandom(len)</c>.</summary>
+    public static Action<byte[]> FillRandom = buffer =>
+        (_rng ??= RandomNumberGenerator.Create()).GetBytes(buffer);
+
+    /// <summary>
+    /// Inclusive uniform int in [minValue, maxValue], mirroring Python
+    /// <c>random.randint</c>. Tests replace it together with
+    /// <see cref="FillRandom"/> to reproduce golden streams.
+    /// </summary>
+    public static Func<int, int, int> NextInt32 = (minValue, maxValue) =>
+        RandomNumberGenerator.GetInt32(minValue, maxValue + 1);
+
+    private static byte[] RandomBytes(int count)
+    {
+        var bytes = new byte[count];
+        FillRandom(bytes);
+        return bytes;
+    }
 
     // _profiled_appdata_len: set once at startup by probe_appdata_len()
     private static int? _profiledAppDataLen;
