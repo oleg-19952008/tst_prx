@@ -9,7 +9,7 @@ namespace TgWsProxy.Transport.H2;
 /// built once from the same table. Byte-for-byte compatible with the Python
 /// <c>hpack</c> dependency used by <c>proxy/h2_transport.py</c>.
 /// </summary>
-internal static class HpackHuffman
+public static class HpackHuffman
 {
     // RFC 7541 Appendix B: (code, bit-length) per symbol 0..256 (index 256 = EOS).
     private static readonly uint[] EncodeCodes =
@@ -101,9 +101,10 @@ internal static class HpackHuffman
             uint code = EncodeCodes[s];
             int bits = EncodeLengths[s];
             int node = 0;
-            for (int i = bits - 1; i >= 0; i--)
+            // Traverse MSB -> LSB: codes are emitted most-significant-bit first.
+            for (int i = 0; i < bits; i++)
             {
-                int bit = (int)((code >> i) & 1);
+                int bit = (int)((code >> (bits - 1 - i)) & 1);
                 // NOTE: do not hold a ref into the lists — Add() below may
                 // reallocate their backing arrays. Index through the lists instead.
                 int next = bit == 0 ? child0[node] : child1[node];

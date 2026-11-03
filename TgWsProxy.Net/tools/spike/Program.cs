@@ -37,6 +37,12 @@ Console.WriteLine();
 
 int failures = 0;
 var results = new List<Dictionary<string, object?>>();
+// [HPACK] offline unit check — RFC 7541 Appendix C.4.1 golden vector.
+var (huffOk, huffDetail) = HuffmanSelfTest.RunC41();
+Console.WriteLine($"[HPACK-C.4.1] {(huffOk ? "PASS" : "FAIL")} — {huffDetail}");
+results.Add(new Dictionary<string, object?> { ["test"] = "hpack_huffman_c41", ["pass"] = huffOk, ["detail"] = huffDetail });
+if (!huffOk) failures++;
+
 
 if (!opts.SkipWs)
     results.Add(await RunWsSpikeAsync(opts));

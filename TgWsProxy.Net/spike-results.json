@@ -1,18 +1,14 @@
 [
   {
-    "check": "ws_handshake",
-    "host": "149.154.167.51",
-    "domain": "kws2-1.web.telegram.org",
-    "sni": "kws2-1.web.telegram.org",
+    "test": "hpack_huffman_c41",
     "pass": false,
-    "error": "OperationCanceledException: The operation was canceled.",
-    "elapsed_ms": 10021
+    "detail": "Decode threw HpackException: Invalid Huffman padding."
   },
   {
     "check": "h2_preflight",
     "authority": "kws2.pclead.co.uk",
     "pass": false,
     "error": "H2ProtocolException: Invalid Huffman padding.",
-    "elapsed_ms": 600
+    "elapsed_ms": 902
   }
 ]
