@@ -1,0 +1,65 @@
+{
+  "note": "cryptography X25519 raw little-endian scalars; exchange clamps per RFC 7748",
+  "vectors": [
+    {
+      "name": "rfc7748-style-pair",
+      "private_a": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+      "public_a": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+      "private_b": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e01f",
+      "public_b": "38f6e6a0e28c23fef1bf575728bdc5b62f6f5c2d5c7ed99e3bf842f0c8aefc08",
+      "shared_ab": "77563ca7b979658568219215786069f17b640f530fd56fd4d905f2a597ca3c6a",
+      "shared_ba": "77563ca7b979658568219215786069f17b640f530fd56fd4d905f2a597ca3c6a"
+    },
+    {
+      "name": "fixed-scalar-1-vs-basepoint9",
+      "private_a": "a546e3bf8905c07bd1ab72eeb8efef152daba724eb3bbf4e61aedc9dc5840015",
+      "public_a": "46147562421b8b128fb16e7abb6560dbfcd40bca9aec34f1efb08ca3282d9141",
+      "peer_pub": "0900000000000000000000000000000000000000000000000000000000000000",
+      "shared_ab": "46147562421b8b128fb16e7abb6560dbfcd40bca9aec34f1efb08ca3282d9141"
+    },
+    {
+      "name": "fixed-scalar-2-vs-basepoint9",
+      "private_a": "4b09f9d24432915b08ac3cb0a4fb0dbf84608ad71a237b3503ea181f6cacda50",
+      "public_a": "22e5c0e5594dec7ea3df967f9042e894729c923322df770ae390de73a907b911",
+      "peer_pub": "0900000000000000000000000000000000000000000000000000000000000000",
+      "shared_ab": "22e5c0e5594dec7ea3df967f9042e894729c923322df770ae390de73a907b911"
+    },
+    {
+      "name": "derived-sha256-seed",
+      "private_a": "5362ce7d21afb273743cee2a9d0c7c12099f4f15da6e639104e02dcfa5439db6",
+      "public_a": "6f736e0f9ca0ab3d55b4bf7fd041c5eb428728c4b049aa808b68519e7299b03e"
+    },
+    {
+      "name": "random-0",
+      "private_a": "2c9c21f365f5c6e26ca567d8efa420d5333ef2eee1ee613546dae0cacddb5f88",
+      "public_a": "6100d947fdf19c689358e8937537ee1413f373e09b54ad9064653e81d3ceff30",
+      "private_b": "9e6592094e7ae1508eb2037a5f44851ad9115095646526b9c0099c1ff075ce5d",
+      "public_b": "1dbabd6420528a636ca7f94ab9be682cdbbbd11f7f18f597fda8ffd54764d268",
+      "shared_ab": "8235d816de282553620d307f3ea77eb1f9d643d7688c09468246fab171702921"
+    },
+    {
+      "name": "random-1",
+      "private_a": "68bc09ad92f5ce7520a6a79eb2341e9de57777836eec2526230b3751dd2234c1",
+      "public_a": "239e5aeddeb9e757a2c28266a7ea0227587f8ccc820d7c5e102fcab6403efa06",
+      "private_b": "3fdf82a0d334995d174e3557de07c275d0752f78c5203978f16c6d240342bdfd",
+      "public_b": "8edfa357769ff2065108b501af89b7ec295383cbd5c6e4c219188ebd740d706d",
+      "shared_ab": "3a657e038a527a15a95adfda5bcbbc780bd9de02b0dfaf499c5393c90275fe7c"
+    },
+    {
+      "name": "random-2",
+      "private_a": "d257938c39c6d94385ae0a2fde5e21eb6dffc7a3fa8c3d5675bd7d2f89afb3b1",
+      "public_a": "620bc554fe38611deab6fd73412660e5cbbf19b1421ca3a6bf144524f0a35c44",
+      "private_b": "fa7763c291e2a00d61f39b5ce345abffdab1a7185b74f714e45faab4aac1026c",
+      "public_b": "c640e7648cad6c68c33af4627f02a0b201bbae4a88b623d2a02574bf9b5c0f09",
+      "shared_ab": "5f149c03282f56c42e4dc07b63ca833b1bcdaaea0728ed101b93bb65d8644a3c"
+    },
+    {
+      "name": "random-3",
+      "private_a": "237306999ef523d5a389ff276a4661a2bc88de900388c182cc34d04000a5c3e1",
+      "public_a": "d8777a8c406a31d39071db1dcc534a5e0f6e966d87dc449f94fa1a46640f9245",
+      "private_b": "d6c0be0aadc1944e68871de3159688b155f6cab099a650bb9232b5d5727709b4",
+      "public_b": "36e7a253fc8329e0e7d5d4c0e38a0678d6f40a43e22f6c1e9f613d9179081f77",
+      "shared_ab": "a9e7322fe913bbd2e3828d4bc9a870e86972b3f1f3bc23a6e9dade6320e0122b"
+    }
+  ]
+}

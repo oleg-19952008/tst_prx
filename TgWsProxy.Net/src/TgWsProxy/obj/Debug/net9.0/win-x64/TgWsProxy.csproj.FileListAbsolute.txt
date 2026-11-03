@@ -1,0 +1,5 @@
+/workspace/TgWsProxy.Net/src/TgWsProxy/obj/Debug/net9.0/win-x64/TgWsProxy.csproj.AssemblyReference.cache
+/workspace/TgWsProxy.Net/src/TgWsProxy/obj/Debug/net9.0/win-x64/TgWsProxy.GeneratedMSBuildEditorConfig.editorconfig
+/workspace/TgWsProxy.Net/src/TgWsProxy/obj/Debug/net9.0/win-x64/TgWsProxy.AssemblyInfoInputs.cache
+/workspace/TgWsProxy.Net/src/TgWsProxy/obj/Debug/net9.0/win-x64/TgWsProxy.AssemblyInfo.cs
+/workspace/TgWsProxy.Net/src/TgWsProxy/obj/Debug/net9.0/win-x64/TgWsProxy.csproj.CoreCompileInputs.cache
