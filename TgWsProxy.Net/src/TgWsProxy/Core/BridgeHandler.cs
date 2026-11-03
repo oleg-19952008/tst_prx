@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
@@ -82,9 +83,9 @@ public sealed class BridgeHandler
     private readonly CfH2Pool? _h2Pool;
 
     /// <summary>Python <c>_tcp_failures / _tcp_retry_after / _tcp_connecting</c>.</summary>
-    private readonly ConcurrentDictionary<(string Dst, int Port>, TcpFailState> _tcpState = new();
+    private readonly ConcurrentDictionary<TcpKey, TcpFailState> _tcpState = new();
 
-    public BridgeHandler(
+    internal BridgeHandler(
         IOptions<ProxyConfig> config,
         ConnectionPool pool,
         CfWorkerPool workers,
@@ -557,7 +558,7 @@ public sealed class BridgeHandler
         ClientInit init, byte[] relayInit, string label, CryptoContext ctx,
         string dst, int port, CancellationToken ct)
     {
-        var key = (dst, port);
+        var key = new TcpKey(dst, port);
         var state = _tcpState.GetOrAdd(key, _ => new TcpFailState());
 
         double now = StopwatchMono.Now;
@@ -629,6 +630,9 @@ public sealed class BridgeHandler
             }
         }
     }
+
+    /// <summary>Tuple key (dst, port) as a value-type record for ConcurrentDictionary.</summary>
+    private readonly record struct TcpKey(string Dst, int Port);
 
     private sealed class TcpFailState
     {
