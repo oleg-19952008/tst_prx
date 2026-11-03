@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 
 namespace TgWsProxy.Transport.H2;
@@ -21,6 +22,13 @@ internal sealed record H2ConnectionOptions
     public TimeSpan KeepAliveInterval { get; init; } = TimeSpan.FromSeconds(15);
     public TimeSpan PingTimeout { get; init; } = TimeSpan.FromSeconds(10);
     public string SniHost { get; init; } = "";
+    /// <summary>
+    /// Certificate policy for <see cref="H2Connection.ConnectAsync"/>. Default is strict,
+    /// mirroring Python cf_h2.py::_default_ssl_context() → create_ssl_context() with
+    /// check_hostname=True (certifi bundle + OS roots). Only spike/diagnostic code that
+    /// terminates TLS in-process (self-signed test origins) should set this to true.
+    /// </summary>
+    public bool AllowInsecureTestCertificates { get; init; }
     /// <summary>Local endpoint to bind before connecting (pool source-IP rotation).</summary>
     public IPEndPoint? LocalEndpoint { get; init; }
 }
@@ -169,9 +177,14 @@ internal sealed class H2Connection : IAsyncDisposable
         CancellationToken ct = default)
     {
         var tcp = new TcpClient();
+        // Strict validation by default — Python h2_transport.py/cf_h2.py use
+        // create_ssl_context() (certifi + OS roots, check_hostname=True).
+        // The blanket "accept anything" callback is opt-in only (spike/test origins).
         var ssl = new SslStream(
             tcp.GetStream(), leaveInnerStreamOpen: false,
-            userCertificateValidationCallback: (_, _, _, _) => true); // pinned fake-CA downstream
+            userCertificateValidationCallback: options.AllowInsecureTestCertificates
+                ? static (_, _, _, _) => true
+                : null);
         try
         {
             using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
@@ -184,8 +197,9 @@ internal sealed class H2Connection : IAsyncDisposable
 
             var clientHello = new SslClientAuthenticationOptions
             {
-                TargetHost = host,
+                TargetHost = string.IsNullOrEmpty(options.SniHost) ? host : options.SniHost,
                 ApplicationProtocols = [SslApplicationProtocol.Http2],
+                CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
             };
             using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
             {
