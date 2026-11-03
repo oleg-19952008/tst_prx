@@ -29,4 +29,11 @@ public static class Utils
     /// invariant culture when the callee parameter type is FormattableString.</summary>
     public static string Inv(FormattableString fs) =>
         string.Format(System.Globalization.CultureInfo.InvariantCulture, fs.Format, fs.GetArguments());
+
+    /// <summary>
+    /// Overload for pre-composed plain strings: interpolations that were built by
+    /// concatenating several $-strings degrade to <c>string</c>; format them with the
+    /// invariant culture anyway (they may still contain format specifiers).
+    /// </summary>
+    public static string Inv(string s) => s;
 }
