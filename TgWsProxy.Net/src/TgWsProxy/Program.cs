@@ -4,6 +4,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TgWsProxy.Configuration;
+using TgWsProxy.Core;
+using TgWsProxy;   // ProgramLogger (ambient logger factory, set once at startup)
 
 const string AppTitle = "TgWsProxy";
 
@@ -60,7 +62,12 @@ builder.Services.AddSingleton<ProxyConfigValidator>();
 builder.Services.AddSingleton<IValidateOptions<ProxyConfig>>(sp => sp.GetRequiredService<ProxyConfigValidator>());
 builder.Services.AddSingleton<IPostConfigureOptions<ProxyConfig>>(sp => sp.GetRequiredService<ProxyConfigValidator>());
 
+// --- Proxy listener (PORT_PLAN.md §3 phase D, checklist item 9) -------------
+builder.Services.AddHostedService<ProxyServer>();
+
 var host = builder.Build();
+
+ProgramLogger.SetFactory(host.Services.GetRequiredService<ILoggerFactory>());
 
 var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger(AppTitle);
 var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
@@ -88,11 +95,10 @@ var configuredSecret = builder.Configuration[$"{ProxyConfig.SectionName}:{nameof
 if (string.IsNullOrWhiteSpace(configuredSecret))
     logger.LogInformation("No Proxy:Secret configured — generated one-time secret: {Secret}", config.Secret);
 
-// TODO (checklist items 3..8): BridgeHandler / ConnectionPool / DcBalancer /
-// FakeTLS / WS+H2 transports as a BackgroundService. For now the skeleton just
-// waits for the shutdown signal so that Ctrl+C handling is exercised.
-logger.LogInformation("Skeleton build: proxy core not yet ported. Press Ctrl+C to exit.");
-
+// The proxy listener runs as a hosted BackgroundService (Core/ProxyServer.cs):
+// TcpListener on Proxy:Host / Proxy:Port, PROXY protocol v1 when enabled,
+// graceful shutdown through the host lifetime. Here we just run the host and
+// wait for it to stop (Ctrl+C → StopApplication).
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
 {
@@ -105,7 +111,7 @@ AppDomain.CurrentDomain.ProcessExit += (_, _) => cts.Cancel();
 
 try
 {
-    await Task.Delay(Timeout.Infinite, cts.Token).ConfigureAwait(false);
+    await host.RunAsync(cts.Token).ConfigureAwait(false);
 }
 catch (OperationCanceledException)
 {
