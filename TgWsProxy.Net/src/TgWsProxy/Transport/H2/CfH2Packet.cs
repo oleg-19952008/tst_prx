@@ -109,10 +109,10 @@ internal sealed class RequestTrace(int packet, double started, bool replay, int 
         double headers = HeadersAt ?? end;
         double sendMs = SentAt is null ? -1 : (SentAt.Value - Started) * 1000;
         double headersMs = SentAt is null ? -1 : Math.Max(0, headers - SentAt.Value) * 1000;
-        return FormattableString.Invariant(
-            $"req={Request} pkt={Packet} sid={Stream} replay={(Replay ? 1 : 0)} phase={Phase} " +
-            $"age_ms={(end - Started) * 1000:F0} send_ms={sendMs:F0} wait_headers_ms={headersMs:F0} " +
-            $"up={Size} down={Received} ray={CfRay}");
+        return Utils.Inv($"req={Request} pkt={Packet} sid={Stream} replay={(Replay ? 1 : 0)}"
+                         + $" phase={Phase} age_ms={(end - Started) * 1000:F0}"
+                         + $" send_ms={sendMs:F0} wait_headers_ms={headersMs:F0}"
+                         + $" up={Size} down={Received} ray={CfRay}");
     }
 }
 
@@ -153,7 +153,7 @@ internal static class MtprotoPacketCodec
 
         bool quick;
         int length;
-        if (tag.SequenceEqual(ProtocolConsts.ProtoTagAbridged))
+        if (tag.AsSpan().SequenceEqual(Obfuscated2.ProtoTagAbridged))
         {
             byte first = (await Plaintext(1))[0];
             quick = (first & 0x80) != 0;
@@ -173,14 +173,14 @@ internal static class MtprotoPacketCodec
         }
 
         int maxLen = CfH2Consts.MaxPacket +
-                     (tag.SequenceEqual(ProtocolConsts.ProtoTagSecure) ? CfH2Consts.MaxPlainPadding : 0);
+                     (tag.AsSpan().SequenceEqual(Obfuscated2.ProtoTagSecure) ? CfH2Consts.MaxPlainPadding : 0);
         if (length < 24 || length > maxLen)
             throw new ArgumentException(
                 $"native packet length outside supported range: {length}");
 
         byte[] body = await Plaintext(length);
 
-        if (tag.SequenceEqual(ProtocolConsts.ProtoTagSecure))
+        if (tag.AsSpan().SequenceEqual(Obfuscated2.ProtoTagSecure))
         {
             int packetLength;
             int maxPadding;
@@ -196,9 +196,9 @@ internal static class MtprotoPacketCodec
             }
             int padding = length - packetLength;
             if (packetLength < 24 || packetLength > length || padding > maxPadding)
-                throw new ArgumentException(FormattableString.Invariant(
-                    $"invalid padded native packet: frame={length} packet={packetLength} " +
-                    $"padding={padding} limit={maxPadding}"));
+                throw new ArgumentException(Utils.Inv(
+                    $"invalid padded native packet: frame={length} packet={packetLength}"
+                    + $" padding={padding} limit={maxPadding}"));
             body = body[..packetLength];
         }
 
@@ -217,7 +217,7 @@ internal static class MtprotoPacketCodec
             throw new ArgumentException(
                 $"invalid HTTP MTProto response length: {body.Length}");
 
-        if (tag.SequenceEqual(ProtocolConsts.ProtoTagAbridged))
+        if (tag.AsSpan().SequenceEqual(Obfuscated2.ProtoTagAbridged))
         {
             int words = body.Length / 4;
             byte[] prefix = words < 0x7f
@@ -229,7 +229,7 @@ internal static class MtprotoPacketCodec
             return output;
         }
 
-        byte[] padding = tag.SequenceEqual(ProtocolConsts.ProtoTagSecure)
+        byte[] padding = tag.AsSpan().SequenceEqual(Obfuscated2.ProtoTagSecure)
             ? RandomNumberGenerator.GetBytes(RandomNumberGenerator.GetInt32(0, 4))
             : [];
         var framed = new byte[4 + body.Length + padding.Length];

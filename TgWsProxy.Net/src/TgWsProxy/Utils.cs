@@ -22,4 +22,11 @@ public static class Utils
         }
         return FormattableString.Invariant($"{v:F1}TB");
     }
+
+    /// <summary>Formats an interpolated string with invariant culture — the C#
+    /// equivalent of Python's locale-independent <c>"%.1f" % x</c> formatting.
+    /// Needed because <see cref="System.Runtime.CompilerServices"/> only applies
+    /// invariant culture when the callee parameter type is FormattableString.</summary>
+    public static string Inv(FormattableString fs) =>
+        string.Format(System.Globalization.CultureInfo.InvariantCulture, fs.Format, fs.GetArguments());
 }
