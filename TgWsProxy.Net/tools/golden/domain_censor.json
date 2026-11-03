@@ -1,0 +1,450 @@
+[
+  {
+    "input": "x",
+    "output": "x"
+  },
+  {
+    "input": "ab",
+    "output": "ab"
+  },
+  {
+    "input": "abc",
+    "output": "abc"
+  },
+  {
+    "input": "abcd",
+    "output": "abcd"
+  },
+  {
+    "input": "a.bc",
+    "output": "*.bc"
+  },
+  {
+    "input": "aa.bb",
+    "output": "a*.bb"
+  },
+  {
+    "input": "aaa.bbb",
+    "output": "a**.bbb"
+  },
+  {
+    "input": "aaaa.bbbb",
+    "output": "aa**.bbbb"
+  },
+  {
+    "input": "aaaaa.bbbbb",
+    "output": "aa***.bbbbb"
+  },
+  {
+    "input": "a.b.c.d.e.f",
+    "output": "a.b.c.d.e.f"
+  },
+  {
+    "input": "1.a",
+    "output": "1.a"
+  },
+  {
+    "input": "a.1",
+    "output": "a.1"
+  },
+  {
+    "input": "1.2",
+    "output": "1.2"
+  },
+  {
+    "input": "12.34",
+    "output": "12.34"
+  },
+  {
+    "input": "a.12",
+    "output": "a.12"
+  },
+  {
+    "input": "12.ab",
+    "output": "1*.ab"
+  },
+  {
+    "input": "foo.bar",
+    "output": "f**.bar"
+  },
+  {
+    "input": "foobar.io",
+    "output": "foo***.io"
+  },
+  {
+    "input": "xn--80ak6aa92e.com",
+    "output": "xn--80a*******.com"
+  },
+  {
+    "input": "verylongsubdomainaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.short.com",
+    "output": "verylongsubdomainaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.sh***.com"
+  },
+  {
+    "input": "a-.b.com",
+    "output": "a-.*.com"
+  },
+  {
+    "input": "-a.b.com",
+    "output": "-a.*.com"
+  },
+  {
+    "input": "a..b.com",
+    "output": "a..*.com"
+  },
+  {
+    "input": ".a.b.com",
+    "output": ".*.*.com"
+  },
+  {
+    "input": "a.b.com.",
+    "output": "*.*.com."
+  },
+  {
+    "input": "host:8080/path",
+    "output": "host:8080/path"
+  },
+  {
+    "input": "user@host.example.com:x",
+    "output": "user@ho**.exa****.com:x"
+  },
+  {
+    "input": "example.com:443",
+    "output": "exa****.com:443"
+  },
+  {
+    "input": "end with dot.",
+    "output": "end with dot."
+  },
+  {
+    "input": "word.word",
+    "output": "wo**.word"
+  },
+  {
+    "input": "hello.world",
+    "output": "he***.world"
+  },
+  {
+    "input": "kws2.web.telegram.org",
+    "output": "kws2.web.telegram.org"
+  },
+  {
+    "input": "*.example.com",
+    "output": "*.exa****.com"
+  },
+  {
+    "input": "a.co.uk",
+    "output": "*.c*.uk"
+  },
+  {
+    "input": "google.com.",
+    "output": "goo***.com."
+  },
+  {
+    "input": "a.io b.ai c.aw",
+    "output": "*.io *.ai *.aw"
+  },
+  {
+    "input": "Version 4.5.6.7 released",
+    "output": "Version 4.5.6.7 released"
+  },
+  {
+    "input": "v1.2.3",
+    "output": "v1.2.3"
+  },
+  {
+    "input": "cloudflare.com and github.com both",
+    "output": "cloud*****.com and git***.com both"
+  },
+  {
+    "input": "test-1.test-2.example.org",
+    "output": "tes***.tes***.exa****.org"
+  },
+  {
+    "input": "1nvalid.tld",
+    "output": "1nv****.tld"
+  },
+  {
+    "input": "a1.b2.c3.com",
+    "output": "a*.b*.c*.com"
+  },
+  {
+    "input": "prefixmiddle.com:80suffix",
+    "output": "prefix******.com:80suffix"
+  },
+  {
+    "input": "email user@example.com tail",
+    "output": "email user@exa****.com tail"
+  },
+  {
+    "input": "path/to/file.txt here",
+    "output": "path/to/fi**.txt here"
+  },
+  {
+    "input": "UPPER.lower.COM",
+    "output": "UP***.lo***.COM"
+  },
+  {
+    "input": "MiXeD.Case.CoM",
+    "output": "Mi***.Ca**.CoM"
+  },
+  {
+    "input": "a.aa.aaa.aaaa bbbb",
+    "output": "*.a*.a**.aaaa bbbb"
+  },
+  {
+    "input": "one.two.three.four.five.six.seven",
+    "output": "o**.t**.th***.fo**.fi**.s**.seven"
+  },
+  {
+    "input": "ends-with-log.log",
+    "output": "ends-with-log.log"
+  },
+  {
+    "input": "sys.LOG",
+    "output": "sys.LOG"
+  },
+  {
+    "input": "access.Log",
+    "output": "access.Log"
+  },
+  {
+    "input": "telegram.org.",
+    "output": "telegram.org."
+  },
+  {
+    "input": "API.TELEGRAM.ORG ok",
+    "output": "API.TELEGRAM.ORG ok"
+  },
+  {
+    "input": "cdn.telegram.org x",
+    "output": "cdn.telegram.org x"
+  },
+  {
+    "input": "nottelegram.org y",
+    "output": "notte******.org y"
+  },
+  {
+    "input": "telegram.orgs z",
+    "output": "tele****.orgs z"
+  },
+  {
+    "input": "x.telegram.org",
+    "output": "x.telegram.org"
+  },
+  {
+    "input": "a-b-c.d-e-f.g",
+    "output": "a-b-c.d-e-f.g"
+  },
+  {
+    "input": "9.9",
+    "output": "9.9"
+  },
+  {
+    "input": "9.9.9.9",
+    "output": "9.9.9.9"
+  },
+  {
+    "input": "9.com",
+    "output": "*.com"
+  },
+  {
+    "input": "a.9com",
+    "output": "a.9com"
+  },
+  {
+    "input": "sub.domain.tk",
+    "output": "s**.dom***.tk"
+  },
+  {
+    "input": "aa.bb.cc.dd.ee.ff.gg.hh",
+    "output": "a*.b*.c*.d*.e*.f*.g*.hh"
+  },
+  {
+    "input": "word length 5 is odd: abcde.fg",
+    "output": "word length 5 is odd: ab***.fg"
+  },
+  {
+    "input": "abcde.fghij",
+    "output": "ab***.fghij"
+  },
+  {
+    "input": "z.y.x.w.v.u.t.s.r.q.p.o.n.m.l.k.j.i.h.g.f.e.d.c.b.a.longtld",
+    "output": "*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.*.longtld"
+  },
+  {
+    "input": "multi line\ndomain.com here\nanother.ru there",
+    "output": "multi line\ndom***.com here\nano****.ru there"
+  },
+  {
+    "input": "",
+    "output": ""
+  },
+  {
+    "input": "....",
+    "output": "...."
+  },
+  {
+    "input": "a.",
+    "output": "a."
+  },
+  {
+    "input": ".com",
+    "output": ".com"
+  },
+  {
+    "input": "www.",
+    "output": "www."
+  },
+  {
+    "input": "http://DOMAIN.EXAMPLE.ORG/path?q=1",
+    "output": "http://DOM***.EXA****.ORG/path?q=1"
+  },
+  {
+    "input": "trailing words like hello world keep intact",
+    "output": "trailing words like hello world keep intact"
+  },
+  {
+    "input": "proxy at 127.0.0.1:1443 secret dd1234",
+    "output": "proxy at 127.0.0.1:1443 secret dd1234"
+  },
+  {
+    "input": "tg://proxy?server=192.168.1.5&port=1443&secret=ddabcdef",
+    "output": "tg://proxy?server=192.168.1.5&port=1443&secret=ddabcdef"
+  },
+  {
+    "input": "cf worker api.worker-name.dev.run",
+    "output": "cf worker a**.worke******.d**.run"
+  },
+  {
+    "input": "worker name .workers.dev suffix",
+    "output": "worker name .wor****.dev suffix"
+  },
+  {
+    "input": "mixed CASE WoRd.DoMaIN.CoM end",
+    "output": "mixed CASE Wo**.DoM***.CoM end"
+  },
+  {
+    "input": "digits-only label 123.456.789.com",
+    "output": "digits-only label 1**.4**.7**.com"
+  },
+  {
+    "input": "a.com.b",
+    "output": "*.com.b"
+  },
+  {
+    "input": "underscore_name.com bad",
+    "output": "underscore_name.com bad"
+  },
+  {
+    "input": "name_with_underscore not a domain",
+    "output": "name_with_underscore not a domain"
+  },
+  {
+    "input": "IDN café.com nonascii",
+    "output": "IDN café.com nonascii"
+  },
+  {
+    "input": "emoji 😀 test.com tail",
+    "output": "emoji 😀 te**.com tail"
+  },
+  {
+    "input": "double  spaces  example.com  here",
+    "output": "double  spaces  exa****.com  here"
+  },
+  {
+    "input": "parentheses (example.com) here",
+    "output": "parentheses (exa****.com) here"
+  },
+  {
+    "input": "quotes \"example.com\" here",
+    "output": "quotes \"exa****.com\" here"
+  },
+  {
+    "input": "angle <example.com> here",
+    "output": "angle <exa****.com> here"
+  },
+  {
+    "input": "comma separated a.com,b.org,c.net",
+    "output": "comma separated *.com,*.org,*.net"
+  },
+  {
+    "input": "semicolon a.com;b.org",
+    "output": "semicolon *.com;*.org"
+  },
+  {
+    "input": "slash-separated path/example.com/next",
+    "output": "slash-separated path/exa****.com/next"
+  },
+  {
+    "input": "dash-domain-x.com",
+    "output": "dash-d*******.com"
+  },
+  {
+    "input": "dot.in.middle-of-sentence example.com.Next sentence.",
+    "output": "d**.in.middle-of-sentence exa****.c**.Next sentence."
+  },
+  {
+    "input": "sentence ends here. example.com starts new",
+    "output": "sentence ends here. exa****.com starts new"
+  },
+  {
+    "input": "no TLD candidate example",
+    "output": "no TLD candidate example"
+  },
+  {
+    "input": "single-label example",
+    "output": "single-label example"
+  },
+  {
+    "input": "co.uk bare",
+    "output": "c*.uk bare"
+  },
+  {
+    "input": "example.co.uk",
+    "output": "exa****.c*.uk"
+  },
+  {
+    "input": "deep.sub.sub.sub.example.com",
+    "output": "de**.s**.s**.s**.exa****.com"
+  },
+  {
+    "input": "TLD LONGER THAN SIX example.technology",
+    "output": "TLD LONGER THAN SIX exa****.technology"
+  },
+  {
+    "input": "uppercase TLD only example.COM",
+    "output": "uppercase TLD only exa****.COM"
+  },
+  {
+    "input": "numeric second-level 123.com",
+    "output": "numeric second-level 1**.com"
+  },
+  {
+    "input": "a.123.com",
+    "output": "*.1**.com"
+  },
+  {
+    "input": "weird ..example.com.. trailing dots",
+    "output": "weird ..exa****.com.. trailing dots"
+  },
+  {
+    "input": "label starting with dash -.example.com",
+    "output": "label starting with dash -.exa****.com"
+  },
+  {
+    "input": "label ending with dash example-.com",
+    "output": "label ending with dash example-.com"
+  },
+  {
+    "input": "very long tld abcdefghijklmnopqrstuvwxyz.com",
+    "output": "very long tld abcdefghijklm*************.com"
+  },
+  {
+    "input": "short short sh.or",
+    "output": "short short s*.or"
+  },
+  {
+    "input": "two chars each ab.cd.ef.gh.ij.kl.mn.op.qr.st.uv.wx.yz.aa.bb.cc.dd.ee.ff.gg.hh.ii.jj.kk.ll.mm.nn.oo.pp.qq.rr.ss.tt.uu.vv.ww.xx.yy.zz.ab",
+    "output": "two chars each a*.c*.e*.g*.i*.k*.m*.o*.q*.s*.u*.w*.y*.a*.b*.c*.d*.e*.f*.g*.h*.i*.j*.k*.l*.m*.n*.o*.p*.q*.r*.s*.t*.u*.v*.w*.x*.y*.z*.ab"
+  }
+]
