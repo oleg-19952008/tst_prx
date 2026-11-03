@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TgWsProxy.Configuration;
 using TgWsProxy.Core;
+using TgWsProxy;   // ProgramLogger (ambient logger factory, set once at startup)
 
 const string AppTitle = "TgWsProxy";
 

@@ -130,7 +130,7 @@ public sealed class ProxyServer : BackgroundService
                 var task = Task.Run(() => HandleClientAsync(client));
                 lock (_clientsLock) _clientTasks.Add(task);
                 // Observe faults so an unhandled exception never goes unnoticed.
-                task.ContinueWith(static t => _ = t.Exception,
+                _ = task.ContinueWith(static t => _ = t.Exception,
                     CancellationToken.None,
                     TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
                     TaskScheduler.Default);
@@ -727,7 +727,7 @@ internal sealed class FakeTlsStream : Stream
         if (payload.Length == 0)
             return 0;
         var take = Math.Min(payload.Length, buffer.Length);
-        payload.AsSpan(0, take).CopyTo(buffer.Span);
+        payload.AsMemory(0, take).CopyTo(buffer);
         if (payload.Length > take)
         {
             _readBuf.SetLength(0);
@@ -795,11 +795,11 @@ internal sealed class FakeTlsStream : Stream
     {
         // Writer side wraps plaintext into TLS appdata records, like
         // FakeTlsStream.write in Python (wrap_tls_record).
-        await _writer.WriteAsync(FakeTls.WrapTlsRecord(buffer.Span), ct).ConfigureAwait(false);
+        await _writer.WriteAsync(FakeTls.WrapTlsRecord(buffer.Span).AsMemory(), ct).ConfigureAwait(false);
     }
 
     public override void Write(ReadOnlySpan<byte> buffer) =>
-        WriteAsync(buffer).AsTask().GetAwaiter().GetResult();
+        WriteAsync(buffer.ToArray()).AsTask().GetAwaiter().GetResult();
 
     public override void Write(byte[] buffer, int offset, int count) =>
         Write(buffer.AsSpan(offset, count));
@@ -842,7 +842,7 @@ internal sealed class SslStreamProbe : IDisposable
         }
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken ct = default)
         {
-            _written.Write(buffer);
+            _written.Write(buffer.Span);
             return ValueTask.CompletedTask;
         }
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();

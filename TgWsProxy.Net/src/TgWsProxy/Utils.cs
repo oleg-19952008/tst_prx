@@ -29,4 +29,8 @@ public static class Utils
     /// invariant culture when the callee parameter type is FormattableString.</summary>
     public static string Inv(FormattableString fs) =>
         string.Format(System.Globalization.CultureInfo.InvariantCulture, fs.Format, fs.GetArguments());
+
+    /// <summary>Plain-string overload: returned verbatim (already invariant-formatted
+    /// by its callers via the FormattableString overload above).</summary>
+    public static string Inv(string s) => s;
 }
