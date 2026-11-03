@@ -1,4 +1,6 @@
 obj/
 bin/
-.vscode/
-.idea/
+*.nuget.props
+*.nuget.targets
+project.assets.json
+project.nuget.cache

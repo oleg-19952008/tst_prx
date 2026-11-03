@@ -86,7 +86,9 @@ public static class HpackHuffman
         var child0 = new List<int> { -1 };
         var child1 = new List<int> { -1 };
         var symbol = new List<int> { -1 };
-        for (int s = 0; s < 256; s++)
+        // Insert all 257 symbols including EOS (index 256) so the decoder can
+        // recognise a full-EOS input and reject it explicitly.
+        for (int s = 0; s <= 256; s++)
         {
             uint code = EncodeCodes[s];
             int bits = EncodeLengths[s];
@@ -164,15 +166,23 @@ public static class HpackHuffman
             int outLen = 0;
             int node = 0;
             int bitsConsumed = 0;
+            int bitsSinceSymbol = 0;
+            bool allOnes = true;
             long totalBits = (long)src.Length * 8;
             while (bitsConsumed < totalBits)
             {
                 int bit = (src[bitsConsumed >> 3] >> (7 - (bitsConsumed & 7))) & 1;
                 bitsConsumed++;
+                bitsSinceSymbol++;
+                if (bit == 0) allOnes = false;
+
                 node = bit == 0 ? TrieChild0[node] : TrieChild1[node];
                 if (node < 0)
                     throw new HpackException("Invalid Huffman code.");
+
                 int sym = TrieSymbol[node];
+                if (sym == 256)
+                    throw new HpackException("EOS in Huffman string.");
                 if (sym >= 0)
                 {
                     if (outLen >= buffer.Length)
@@ -186,11 +196,14 @@ public static class HpackHuffman
                         throw new HpackException("Huffman output exceeds bound.");
                     buffer[outLen++] = (byte)sym;
                     node = 0;
+                    bitsSinceSymbol = 0;
+                    allOnes = true;
                 }
             }
-            // End state must be the root, or sit at most 7 zero-padded bits away
-            // from an EOS leaf reached through all-1 padding (RFC 7541 §5.2).
-            if (node != 0 && !IsPartialLeaf(node))
+            // Trailing bits must be a proper prefix of EOS, i.e. at most 7 all-1
+            // bits after the last complete symbol (RFC 7541 §5.2). Any run of
+            // <=7 ones is by definition an EOS prefix, so no trie walk is needed.
+            if (bitsSinceSymbol > 7 || !allOnes)
                 throw new HpackException("Invalid Huffman padding.");
             return buffer.AsSpan(0, outLen).ToArray();
         }
@@ -198,20 +211,6 @@ public static class HpackHuffman
         {
             ArrayPool<byte>.Shared.Return(buffer);
         }
-    }
-
-    private static bool IsPartialLeaf(int node)
-    {
-        // A dangling node is legal only when following 1-bits leads to EOS within <= 7 steps.
-        int probe = node;
-        for (int i = 0; i < 7; i++)
-        {
-            probe = TrieChild1[probe];
-            if (probe < 0) return false;
-            if (TrieSymbol[probe] == 256) return true;
-            if (TrieSymbol[probe] >= 0) return false;
-        }
-        return false;
     }
 
     public static string DecodeAscii(ReadOnlySpan<byte> src) =>
