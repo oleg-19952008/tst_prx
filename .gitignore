@@ -1,3 +1,4 @@
 obj/
 bin/
-*.nuget.cache
+.vscode/
+.idea/

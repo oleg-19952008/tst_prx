@@ -6,13 +6,13 @@
     "sni": "kws2-1.web.telegram.org",
     "pass": false,
     "error": "OperationCanceledException: The operation was canceled.",
-    "elapsed_ms": 10019
+    "elapsed_ms": 10021
   },
   {
     "check": "h2_preflight",
     "authority": "kws2.pclead.co.uk",
     "pass": false,
-    "error": "TypeInitializationException: The type initializer for \u0027TgWsProxy.Transport.H2.HpackCodec\u0027 threw an exception.",
-    "elapsed_ms": 495
+    "error": "H2ProtocolException: Invalid Huffman padding.",
+    "elapsed_ms": 600
   }
 ]
