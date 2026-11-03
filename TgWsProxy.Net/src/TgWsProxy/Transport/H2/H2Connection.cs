@@ -262,6 +262,22 @@ internal sealed class H2Connection : IAsyncDisposable
         string method, string path, string authority,
         IReadOnlyList<(string Name, byte[] Value)> headers,
         ReadOnlyMemory<byte> body, CancellationToken ct = default)
+        => await RequestAsync(method, path, authority, headers, body,
+                              onBodySent: null, onResponseStarted: null, ct).ConfigureAwait(false);
+
+    /// <summary>
+    /// Streaming variant used by <c>cf_h2</c>: the Python code hooks httpx trace events
+    /// (<c>http2.send_request_body.complete</c>) and <c>h2_response_started</c>; those map to
+    /// <paramref name="onBodySent"/> (request DATA fully handed to the peer) and
+    /// <paramref name="onResponseStarted"/> (response HEADERS received / first body byte).
+    /// </summary>
+    public async Task<H2Response> RequestAsync(
+        string method, string path, string authority,
+        IReadOnlyList<(string Name, byte[] Value)> headers,
+        ReadOnlyMemory<byte> body,
+        Action? onBodySent,
+        Action? onResponseStarted,
+        CancellationToken ct = default)
     {
         EnsureHealthy();
         if (_nextStreamId > _goawayLastStreamId)
@@ -313,6 +329,8 @@ internal sealed class H2Connection : IAsyncDisposable
                 await SendAsync(fin, ct).ConfigureAwait(false);
                 stream.State = H2StreamState.HalfClosedLocal;
             }
+            // httpx trace event `http2.send_request_body.complete` (cf_h2 sent_since marker).
+            onBodySent?.Invoke();
 
             // Wait for response headers (Python: `while stream.headers is None`).
             while (stream.Headers is null)
@@ -325,6 +343,7 @@ internal sealed class H2Connection : IAsyncDisposable
                 stream.CheckError();
                 EnsureHealthy();
             }
+            onResponseStarted?.Invoke(); // cf_h2 `h2_response_started` hook
             return new H2Response(stream, stream.Headers);
         }
         catch
@@ -1002,7 +1021,7 @@ internal sealed class H2Connection : IAsyncDisposable
         foreach (var s in _streams.Values) s.Notify();
     }
 
-    private void ReleaseStream(H2Stream stream, bool resetIfOpen)
+    internal void ReleaseStream(H2Stream stream, bool resetIfOpen)
     {
         _streams.TryRemove(stream.Id, out _);
         if (resetIfOpen && _error is null && !stream.EndedByPeer &&

@@ -24,6 +24,9 @@ public sealed class ProxyStats
     private long _poolMisses;
     private long _cfPoolHits;
     private long _cfPoolMisses;
+    private long _h2TcpConnections;
+    private long _h2Requests;
+    private long _h2Errors;
 
     private long Inc(ref long field, long delta = 1) => Interlocked.Add(ref field, delta);
     private long Get(ref long field) => Volatile.Read(ref field);
@@ -44,6 +47,9 @@ public sealed class ProxyStats
     public long PoolMisses => Get(ref _poolMisses);
     public long CfPoolHits => Get(ref _cfPoolHits);
     public long CfPoolMisses => Get(ref _cfPoolMisses);
+    public long H2TcpConnections => Get(ref _h2TcpConnections);
+    public long H2Requests => Get(ref _h2Requests);
+    public long H2Errors => Get(ref _h2Errors);
 
     public void AddConnectionWs() => Inc(ref _connectionsWs);
     public void AddConnectionH2() => Inc(ref _connectionsH2);
@@ -59,8 +65,11 @@ public sealed class ProxyStats
     public void AddPoolMiss() => Inc(ref _poolMisses);
     public void AddCfPoolHit() => Inc(ref _cfPoolHits);
     public void AddCfPoolMiss() => Inc(ref _cfPoolMisses);
+    public void AddH2TcpConnection() => Inc(ref _h2TcpConnections);
+    public void AddH2Request() => Inc(ref _h2Requests);
+    public void AddH2Error() => Inc(ref _h2Errors);
 
-    /// <summary>Mirror of Python <c>_Stats.summary()</c> (h2_tcp/h2_req/h2_err appear in phase 6).</summary>
+    /// <summary>Mirror of Python <c>_Stats.summary()</c>.</summary>
     public string Summary()
     {
         var poolTotal = PoolHits + PoolMisses;
@@ -70,7 +79,8 @@ public sealed class ProxyStats
         return $"total={ConnectionsTotal} active={ConnectionsActive} ws={ConnectionsWs} " +
                $"h2={ConnectionsH2} tcp_fb={ConnectionsTcpFallback} cf={ConnectionsCfproxy} " +
                $"front={ConnectionsFronting} bad={ConnectionsBad} masked={ConnectionsMasked} " +
-               $"err={WsErrors} pool={poolS} cf_pool={cfPoolS} " +
+               $"err={WsErrors} h2_tcp={H2TcpConnections} h2_req={H2Requests} h2_err={H2Errors} " +
+               $"pool={poolS} cf_pool={cfPoolS} " +
                $"up={Core.ProtocolConsts.HumanBytes(BytesUp)} down={Core.ProtocolConsts.HumanBytes(BytesDown)}";
     }
 }
