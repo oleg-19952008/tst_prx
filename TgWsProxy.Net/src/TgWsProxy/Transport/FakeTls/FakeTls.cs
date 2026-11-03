@@ -96,6 +96,15 @@ public static class FakeTls
         return bytes;
     }
 
+    /// <summary>RNG seam alias used by the golden-vector tests (same stream as <see cref="FillRandom"/>).</summary>
+    internal static readonly RngAdapter Rng = new();
+
+    internal sealed class RngAdapter
+    {
+        public void GetBytes(byte[] buffer) => FillRandom(buffer);
+        public int Next(int minInclusive, int maxInclusive) => NextInt32(minInclusive, maxInclusive);
+    }
+
     // _profiled_appdata_len: set once at startup by probe_appdata_len()
     private static int? _profiledAppDataLen;
 
