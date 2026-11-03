@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Security.Cryptography;
 
 namespace TgWsProxy.Crypto;
@@ -139,52 +140,144 @@ public sealed class AesCtrCipher : IDisposable
         return sha.Hash!;
     }
 
+    /// <summary>X25519 base point u = 9 (RFC 7748 §6.1), little-endian 32 bytes.</summary>
+    public static readonly byte[] X25519Basepoint = CreateBasepoint();
+
+    private static byte[] CreateBasepoint()
+    {
+        var bp = new byte[32];
+        bp[0] = 9;
+        return bp;
+    }
+
     /// <summary>
     /// Raw X25519 scalar multiplication over 32-byte little-endian key material,
     /// matching <c>cryptography.hazmat.primitives.asymmetric.x25519.X25519PrivateKey.exchange()</c>
-    /// (golden vectors: <c>tools/golden/x25519.json</c>).
-    /// NOTE (deferred fix): the implementation below is broken — ECParameters
-    /// cannot carry a raw X25519 curve/key and <c>EccNamedAlgorithm</c> does not
-    /// exist in System.Security.Cryptography. It is kept commented-out until the
-    /// real port lands; no caller uses it yet (FakeTls only generates public keys).
+    /// and <c>.public_bytes_raw()</c> (golden vectors: <c>tools/golden/x25519.json</c>).
+    /// Managed RFC 7748 Montgomery ladder on <see cref="BigInteger"/>: .NET's
+    /// <c>ECDiffieHellman</c> cannot carry raw Curve25519 scalars/points (the old
+    /// commented-out stub referencing the non-existent <c>EccNamedAlgorithm</c> was
+    /// removed by the deferred-fix port), and this keeps single-file win-x64 builds
+    /// free of extra native dependencies.
     /// </summary>
-    //public static byte[] X25519(ReadOnlySpan<byte> privateKey32, ReadOnlySpan<byte> publicKey32)
-    //{
-    //    if (privateKey32.Length != 32)
-    //        throw new ArgumentException("X25519 private key must be 32 bytes", nameof(privateKey32));
-    //    if (publicKey32.Length != 32)
-    //        throw new ArgumentException("X25519 public key must be 32 bytes", nameof(publicKey32));
-    //
-    //    using ECDiffieHellman ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
-    //    ecdh.ImportParameters(new ECParameters
-    //    {
-    //        Curve = EccNamedAlgorithm.X25519,
-    //        D = privateKey32.ToArray(),
-    //        Q = BuildRawPublicKey(publicKey32),
-    //    });
-    //
-    //    using ECDiffieHellman peer = ECDiffieHellman.Create();
-    //    peer.ImportSubjectPublicKeyInfo(BuildSpki(publicKey32), out _);
-    //
-    //    // RFC 7748 shared secret: 32-byte little-endian field element.
-    //    return ecdh.DeriveRawSecretAgreement(peer.PublicKey).ToArray();
-    //}
+    /// <param name="privateKey32">Private scalar, 32 bytes little-endian; clamped per RFC 7748.</param>
+    /// <param name="publicKey32">Peer public value u, 32 bytes little-endian.</param>
+    /// <returns>The 32-byte little-endian shared secret / derived public value.</returns>
+    public static byte[] X25519(ReadOnlySpan<byte> privateKey32, ReadOnlySpan<byte> publicKey32)
+    {
+        if (privateKey32.Length != 32)
+            throw new ArgumentException("X25519 private key must be 32 bytes", nameof(privateKey32));
+        if (publicKey32.Length != 32)
+            throw new ArgumentException("X25519 public key must be 32 bytes", nameof(publicKey32));
 
-    ///// <summary>
-    ///// DER BIT STRING payload for an X25519 public key: the raw 32 bytes, with a
-    ///// leading 0x00 pad byte when the high bit is set so the value stays positive
-    ///// (matches System.Security formatting).
-    ///// </summary>
-    //private static byte[] BuildRawPublicKey(ReadOnlySpan<byte> raw32)
-    //{
-    //    if ((raw32[31] & 0x80) != 0)
-    //    {
-    //        var withPad = new byte[33];
-    //        raw32.CopyTo(withPad.AsSpan(1));
-    //        return withPad;
-    //    }
-    //    return raw32.ToArray();
-    //}
+        // Clamp the scalar: k[0] &= 248; k[31] &= 127; k[31] |= 64 (RFC 7748 §5).
+        Span<byte> k = stackalloc byte[32];
+        privateKey32.CopyTo(k);
+        k[0] &= 248;
+        k[31] = (byte)((k[31] & 127) | 64);
+
+        // Decode both operands as little-endian integers, mask u modulo 2^255 - 19.
+        var scalar = LeToBigInt(k);
+        var p = BigInteger.Pow(Two, 255) - Nineteen;
+        var u = LeToBigInt(publicKey32) % p;
+
+        // RFC 7748 §5 (version with conditional swaps around every ladder step).
+        const int bits = 255;
+        var a24 = new BigInteger(121665);
+        var x1 = u;
+        var x2 = BigInteger.One;
+        var z2 = BigInteger.Zero;
+        var x3 = u;
+        var z3 = BigInteger.One;
+
+        for (var i = bits - 1; i >= 0; i--)
+        {
+            var kt = (scalar >> i) & BigInteger.One;
+            if (kt == BigInteger.One)
+            {
+                (x2, x3) = (x3, x2);
+                (z2, z3) = (z3, z2);
+            }
+
+            var a = Mod(x2 + z2, p);
+            var aa = Mod(a * a, p);
+            var b = Mod(x2 - z2, p);
+            var bb = Mod(b * b, p);
+            var e = Mod(aa - bb, p);
+            var c = Mod(x3 + z3, p);
+            var d = Mod(x3 - z3, p);
+            var da = Mod(d * aa, p);
+            var cb = Mod(c * bb, p);
+
+            var nx3 = Mod((da + cb) * (da + cb), p);
+            var nz3 = Mod(x1 * Mod(da - cb, p) * Mod(da - cb, p), p);
+            var nx2 = Mod(aa * bb, p);
+            var nz2 = Mod(e * Mod(aa + a24 * e, p), p);
+
+            x2 = nx2;
+            z2 = nz2;
+            x3 = nx3;
+            z3 = nz3;
+
+            if (kt == BigInteger.One)
+            {
+                (x2, x3) = (x3, x2);
+                (z2, z3) = (z3, z2);
+            }
+        }
+
+        // Output = x2 * z2^(p-2) mod p (modular inverse via Fermat, p is prime).
+        var result = Mod(x2 * ModPow(z2, p - 2, p), p);
+        return BigIntToLe(result);
+    }
+
+    /// <summary>Port of <c>X25519PrivateKey.generate().public_bytes_raw()</c>: clamp(seed) · 9.</summary>
+    public static byte[] X25519PublicKeyFromSeed(ReadOnlySpan<byte> seed32) =>
+        X25519(seed32, X25519Basepoint);
+
+    private static readonly BigInteger Two = new BigInteger(2);
+    private static readonly BigInteger Nineteen = new BigInteger(19);
+
+    /// <summary>Non-negative modulo (BigInteger.Remainder keeps the dividend's sign).</summary>
+    private static BigInteger Mod(BigInteger value, BigInteger m)
+    {
+        var r = value % m;
+        return r.Sign < 0 ? r + m : r;
+    }
+
+    /// <summary>Modular exponentiation (square-and-multiply over non-negative exponents).</summary>
+    private static BigInteger ModPow(BigInteger baseValue, BigInteger exponent, BigInteger m)
+    {
+        var result = BigInteger.One;
+        var b = Mod(baseValue, m);
+        while (exponent > BigInteger.Zero)
+        {
+            if ((exponent & BigInteger.One) == BigInteger.One)
+                result = Mod(result * b, m);
+            b = Mod(b * b, m);
+            exponent >>= 1;
+        }
+        return result;
+    }
+
+    /// <summary>Little-endian 32 bytes -> non-negative BigInteger.</summary>
+    private static BigInteger LeToBigInt(ReadOnlySpan<byte> le32)
+    {
+        Span<byte> be = stackalloc byte[33];   // leading zero keeps the value positive
+        for (var i = 0; i < 32; i++)
+            be[32 - i] = le32[i];
+        return new BigInteger(be);
+    }
+
+    /// <summary>Non-negative BigInteger -> little-endian 32 bytes (zero-padded).</summary>
+    private static byte[] BigIntToLe(BigInteger value)
+    {
+        var be = value.ToByteArray(isUnsigned: true, isBigEndian: true);
+        var le = new byte[32];
+        for (var i = 0; i < be.Length; i++)
+            le[i] = be[be.Length - 1 - i];
+        return le;
+    }
 
     /// <summary>Build a DER SubjectPublicKeyInfo for an X25519 raw public key.</summary>
     public static byte[] BuildSpki(ReadOnlySpan<byte> rawPublicKey32)
