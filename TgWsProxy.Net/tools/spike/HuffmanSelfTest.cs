@@ -8,8 +8,10 @@ internal static class HuffmanSelfTest
     public static (bool ok, string detail) RunC41()
     {
         // C.4.1: "www.example.com" encoded (request text, no literal flag byte).
+        // NOTE: the canonical RFC 7541 Appendix C.4.1 wire bytes are
+        // f1e3c2e5f23a6bb1ae3415640ac8ab6d13b54c (verified against pip `hpack`).
         byte[] encoded = Convert.FromHexString(
-            "f1e3c2e5f23a6baac8d29aee2b0b0f3f".Replace(" ", ""));
+            "f1e3c2e5f23a6bb1ae3415640ac8ab6d13b54c".Replace(" ", ""));
         const string expected = "www.example.com";
 
         byte[] decoded;
