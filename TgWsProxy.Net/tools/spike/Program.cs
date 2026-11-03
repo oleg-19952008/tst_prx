@@ -75,7 +75,7 @@ static async Task<Dictionary<string, object?>> RunWsSpikeAsync(SpikeOptions opts
     { ["check"] = "ws_handshake", ["host"] = host, ["domain"] = domain, ["sni"] = sni };
     try
     {
-        using var ws = await RawWebSocket.ConnectAsync(
+        await using var ws = await RawWebSocket.ConnectAsync(
             host, domain, TimeSpan.FromSeconds(10),
             path: ProtocolConsts.WsPath, sni: sni, secure: true);
         sw.Stop();

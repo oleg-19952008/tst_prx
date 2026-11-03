@@ -9,6 +9,12 @@
     <RootNamespace>SpikeTransport</RootNamespace>
     <!-- Dev tool only; never published with the app. -->
     <IsPackable>false</IsPackable>
+    <!-- Match the main project's default RID so the ProjectReference resolves to a
+         self-contained build (a non-self-contained exe cannot reference a
+         self-contained one — NETSDK1151). Override on Linux/macOS dev boxes via
+         -p:RuntimeIdentifier=linux-x64 or by editing here. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>

@@ -352,11 +352,11 @@ internal sealed class HttpChannel : IAsyncDisposable
                 !t.IsReplay && !t.Receiving && now - t.PendingSince >= CfH2Consts.SlowResponseSeconds);
 
             return Utils.Inv($"channel={ChannelId} pending={_pending.Count} replays={_replayPending.Count} " +
-                       "receiving={ReceivingHttpLocked()} ready_bytes={_replyBytes} " +
-                       "native_write={(DeliveringSince is not null ? 1 : 0)} " +
-                       "idle_ms={(now - LastProgress) * 1000:F0} oldest_ms={(now - oldest) * 1000:F0} " +
-                       "native_age_ms={(now - LastNativeSend) * 1000:F0} " +
-                       "recovery_left={recoveryLeft} waiting_headers={waitingHeaders}");
+                       $"receiving={ReceivingHttpLocked()} ready_bytes={_replyBytes} " +
+                       $"native_write={(DeliveringSince is not null ? 1 : 0)} " +
+                       $"idle_ms={(now - LastProgress) * 1000:F0} oldest_ms={(now - oldest) * 1000:F0} " +
+                       $"native_age_ms={(now - LastNativeSend) * 1000:F0} " +
+                       $"recovery_left={recoveryLeft} waiting_headers={waitingHeaders}");
         }
     }
 

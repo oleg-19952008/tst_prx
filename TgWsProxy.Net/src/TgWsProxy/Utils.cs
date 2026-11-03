@@ -32,6 +32,13 @@ public static class Utils
     /// invariant culture when the callee parameter type is FormattableString.</summary>
     public static string Inv(FormattableString fs) =>
         string.Format(System.Globalization.CultureInfo.InvariantCulture, fs.Format, fs.GetArguments());
+
+    /// <summary>Identity overload for already-materialised strings (e.g. results of
+    /// concatenating two FormattableStrings with <c>+</c>, which yields <c>string</c>).
+    /// Such strings are produced by interpolated literals whose holes were formatted
+    /// with the current culture — callers must not rely on this overload for
+    /// culture-sensitive numeric holes; merge those into a single $"" literal instead.</summary>
+    public static string Inv(string s) => s;
 }
 
 /// <summary>
@@ -52,7 +59,7 @@ internal sealed class StreamPipeReader : PipeReader
         {
             int n = await _stream.ReadAsync(mem.AsMemory(), cancellationToken).ConfigureAwait(false);
             var seq = new ReadOnlySequence<byte>(n == 0 ? Array.Empty<byte>() : mem.AsMemory(0, n));
-            return new ReadResult(seq, isCanceled: false, completed: n == 0);
+            return new ReadResult(seq, isCanceled: false, isCompleted: n == 0);
         }
         finally
         {

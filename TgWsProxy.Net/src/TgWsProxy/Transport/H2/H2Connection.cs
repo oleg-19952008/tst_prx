@@ -12,7 +12,7 @@ using System.Threading.Channels;
 namespace TgWsProxy.Transport.H2;
 
 /// <summary>Options for <see cref="H2Connection"/> (defaults mirror h2_transport.py).</summary>
-internal sealed record H2ConnectionOptions
+public sealed record H2ConnectionOptions
 {
     public int MaxConcurrentStreams { get; init; } = 64;          // MAX_LANE_REQUESTS cap
     public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(8);   // SETUP_TIMEOUT
@@ -34,7 +34,7 @@ internal sealed record H2ConnectionOptions
 }
 
 /// <summary>Result of one client-initiated request/response exchange.</summary>
-internal sealed class H2Response
+public sealed class H2Response
 {
     private readonly H2Stream _stream;
 
@@ -115,7 +115,7 @@ internal sealed class H2Response
 /// DATA, WINDOW_UPDATE flow control (connection + per-stream), RST_STREAM,
 /// GOAWAY and PING/ACK keep-alive with liveness enforcement.
 /// </summary>
-internal sealed class H2Connection : IAsyncDisposable
+public sealed class H2Connection : IAsyncDisposable
 {
     private readonly TcpClient _tcp;
     private readonly SslStream _ssl;
