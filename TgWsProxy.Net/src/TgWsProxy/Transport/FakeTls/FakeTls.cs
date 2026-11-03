@@ -232,7 +232,7 @@ public static class FakeTls
     {
         try
         {
-            using ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
+            using ECDiffieHellman ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
             var spki = ecdh.PublicKey.ExportSubjectPublicKeyInfo();
             // SPKI ends with 0x04 || raw 32-byte little-endian key
             var key = new byte[32];
