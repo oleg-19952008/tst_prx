@@ -58,9 +58,9 @@ public sealed class WsActivity
         Dc = dc;
         _sampleStamp = NowTicks();
         _owner.Register(this);
-        // NOTE: Log() takes a pre-formatted message (not a structured template)
+        // NOTE: Debug() takes a pre-formatted message (not a structured template)
         // because callers build invariant-culture %.0f strings by hand.
-        _owner.Log(LogLevel.Debug, $"[{label}] WS OPEN {dc}");
+        _owner.Debug($"[{label}] WS OPEN {dc}");
     }
 
     /// <summary>Python <c>input(length)</c> — bytes read from the local client.</summary>
@@ -124,7 +124,10 @@ public sealed class WsActivity
         _sampleWsDown = WsDown;
         _sampleNativeDown = NativeDown;
 
-        return FormattableString.Invariant(
+        // Local of static type string — see the NetworkDebug.Debug comment:
+        // FormattableString arguments bind to ILogger's generic Log<T0,T1>
+        // extension overloads instead of our plain-string helper (CS1503).
+        string text = FormattableString.Invariant(
             $"client={Label}" +
             $" window_ms={ToMs(now - previous.Item1):F0}" +
             $" native_up={NativeUp - previous.Item2}" +
@@ -135,6 +138,7 @@ public sealed class WsActivity
             $" last_rx_ms={(_lastRx == 0 ? -1 : ToMs(now - _lastRx)):F0}" +
             $" ws_write_ms={(_sending == 0 ? 0 : ToMs(now - _sending)):F0}" +
             $" native_write_ms={(_writingNative == 0 ? 0 : ToMs(now - _writingNative)):F0}");
+        return text;
     }
 
     /// <summary>Python <c>close()</c> — deregister and log the final line.</summary>
@@ -142,10 +146,11 @@ public sealed class WsActivity
     {
         var now = NowTicks();
         _owner.Unregister(this);
-        _owner.Log(LogLevel.Debug, FormattableString.Invariant(
+        string text = FormattableString.Invariant(
             $"WS END {Dc} {Summary(now)} first_reply_ms={(_firstReply == 0 ? -1 : ToMs(_firstReply)):F0} " +
             $"max_rx_gap_ms={MaxRxDelayMs:F0} max_ws_write_ms={MaxSendMs:F0} " +
-            $"max_native_write_ms={MaxNativeWriteMs:F0}"));
+            $"max_native_write_ms={MaxNativeWriteMs:F0}");
+        _owner.Debug(text);
     }
 }
 
@@ -196,16 +201,14 @@ public sealed class NetworkDebug : IDisposable
     internal void Register(WsActivity activity) => _active.TryAdd(activity, 0);
     internal void Unregister(WsActivity activity) => _active.TryRemove(activity, out _);
 
-    internal void Log(LogLevel level, string message) => _logger.Log(level, message);
-
-    /// <summary>
-    /// Two-arg structured logging. The method is deliberately named
-    /// <c>Log2</c> — a generic <c>Log&lt;T0,T1&gt;</c> overload would be
-    /// preferred by the compiler over the plain-string one even for
-    /// <see cref="FormattableString.Invariant"/> results (CS1503).
-    /// </summary>
-    internal void Log2<T0, T1>(LogLevel level, string messageTemplate, T0 arg0, T1 arg1) =>
-        _logger.Log(level, messageTemplate, arg0, arg1);
+    // NOTE: these helpers are NOT named Log/Log2 — ILogger already has generic
+    // Log<T0,T1>(LogLevel, string, T0, T1) extension overloads that the compiler
+    // prefers over a plain (LogLevel, string) instance method when the second
+    // argument is an interpolated FormattableString (CS1503 otherwise).
+    // InterpolatedStringHandler overloads also bind before a cast to string, so
+    // every call site must pass a local of static type string.
+    internal void Debug(string message) => _logger.LogDebug("{Message}", message);
+    internal void Info(string message) => _logger.LogInformation("{Message}", message);
 
     /// <summary>
     /// Start the periodic console reporter (replaces the asyncio
