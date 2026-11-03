@@ -5,7 +5,49 @@ using TgWsProxy.Crypto;
 namespace TgWsProxy.Core;
 
 /// <summary>Result of a successful obfuscated2 handshake — Python <c>_try_handshake</c> tuple.</summary>
-public sealed record HandshakeResult(int Dc, bool IsMedia, byte[] ProtoTag, byte[] ClientDecPrekeyIv);
+public sealed record HandshakeResult(int Dc, bool IsMedia, byte[] ProtoTag, byte[] ClientDecPrekeyIv)
+{
+    /// <summary>PROTO_*_INT numeric form used by MsgSplitter.</summary>
+    public uint ProtoInt =>
+        ProtoTag.SequenceEqual(ProtocolConsts.ProtoTagAbridged) ? ProtocolConsts.ProtoAbridgedInt :
+        ProtoTag.SequenceEqual(ProtocolConsts.ProtoTagIntermediate) ? ProtocolConsts.ProtoIntermediateInt :
+        ProtocolConsts.ProtoPaddedIntermediateInt;
+}
+
+/// <summary>
+/// Four streaming AES-CTR states for one bridged session — Python
+/// <c>bridge.py::CryptoCtx</c> (clt_dec/clt_enc/tg_enc/tg_dec).
+/// </summary>
+public sealed class CryptoContext : IDisposable
+{
+    public AesCtrCipher CltDecryptor { get; }   // decrypt data from client
+    public AesCtrCipher CltEncryptor { get; }   // encrypt data to client
+    public AesCtrCipher TgEncryptor { get; }    // encrypt data to telegram
+    public AesCtrCipher TgDecryptor { get; }    // decrypt data from telegram
+
+    public CryptoContext(AesCtrCipher cltDec, AesCtrCipher cltEnc,
+                         AesCtrCipher tgEnc, AesCtrCipher tgDec)
+    {
+        CltDecryptor = cltDec;
+        CltEncryptor = cltEnc;
+        TgEncryptor = tgEnc;
+        TgDecryptor = tgDec;
+    }
+
+    /// <summary>client ciphertext chunk → plaintext (Python ctx.clt_dec.update).</summary>
+    public byte[] ClientToPlain(ReadOnlySpan<byte> data) => CltDecryptor.Update(data);
+    public byte[] PlainToClient(ReadOnlySpan<byte> data) => CltEncryptor.Update(data);
+    public byte[] PlainToTelegram(ReadOnlySpan<byte> data) => TgEncryptor.Update(data);
+    public byte[] TelegramToPlain(ReadOnlySpan<byte> data) => TgDecryptor.Update(data);
+
+    public void Dispose()
+    {
+        CltDecryptor.Dispose();
+        CltEncryptor.Dispose();
+        TgEncryptor.Dispose();
+        TgDecryptor.Dispose();
+    }
+}
 
 /// <summary>
 /// MTProto obfuscated2 handshake helpers — direct port of Python
@@ -23,7 +65,7 @@ public static class Obfuscated2
         var decPrekey = decPrekeyAndIv[..ProtocolConsts.PrekeyLen];
         var decIv = decPrekeyAndIv[ProtocolConsts.PrekeyLen..];
 
-        var decKey = SHA256.HashData.Concat2(decPrekey, secret);
+        var decKey = Sha256Concat(decPrekey, secret);
 
         using var decryptor = new AesCtrCipher(decKey, decIv);
         var decrypted = decryptor.Update(handshake);
@@ -80,11 +122,10 @@ public static class Obfuscated2
     {
         var cltDecPrekey = clientDecPrekeyIv[..ProtocolConsts.PrekeyLen];
         var cltDecIv = clientDecPrekeyIv[ProtocolConsts.PrekeyLen..];
-        var cltDecKey = SHA256.HashData.Concat2(cltDecPrekey, secret);
+        var cltDecKey = Sha256Concat(cltDecPrekey, secret);
 
         var cltEncPrekeyIv = Reverse(clientDecPrekeyIv);
-        var cltEncKey = SHA256.HashData.Concat2(
-            cltEncPrekeyIv[..ProtocolConsts.PrekeyLen], secret);
+        var cltEncKey = Sha256Concat(cltEncPrekeyIv[..ProtocolConsts.PrekeyLen], secret);
         var cltEncIv = cltEncPrekeyIv[ProtocolConsts.PrekeyLen..];
 
         var cltDecryptor = new AesCtrCipher(cltDecKey, cltDecIv);
@@ -125,14 +166,14 @@ public static class Obfuscated2
         return false;
     }
 
-    private static byte[] Concat2(this byte[] hashState, ReadOnlySpan<byte> ignored) => hashState;
-
-    // SHA256.HashData(a+b) helper kept explicit to avoid LINQ allocations.
-    private static byte[] HashDataConcat(this System.Security.Cryptography.SHA256 _, byte[] a, byte[] b)
+    /// <summary>SHA256(a + b) — Python <c>hashlib.sha256(prekey + secret).digest()</c>.</summary>
+    private static byte[] Sha256Concat(byte[] a, byte[] b)
     {
         var buf = new byte[a.Length + b.Length];
         a.CopyTo(buf, 0);
         b.CopyTo(buf, a.Length);
-        return SHA256.HashData(buf);
+        var hash = SHA256.HashData(buf);
+        CryptographicOperations.ZeroMemory(buf);
+        return hash;
     }
 }

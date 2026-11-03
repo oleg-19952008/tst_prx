@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TgWsProxy.Configuration;
 using TgWsProxy.Observability;
+using System.Diagnostics;
 using TgWsProxy.Transport;
 
 namespace TgWsProxy.Core;

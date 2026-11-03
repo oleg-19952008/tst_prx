@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TgWsProxy.Configuration;

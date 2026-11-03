@@ -3,9 +3,8 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Logging;
 using TgWsProxy.Configuration;
-using TgWsProxy.Observability;
+using TgWsProxy.Core;
 
 namespace TgWsProxy.Transport;
 

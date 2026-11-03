@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
 
 namespace TgWsProxy.Configuration;
 
@@ -12,7 +12,6 @@ public sealed class ProxyConfig
     public const string SectionName = "Proxy";
 
     /// <summary>Listen port.</summary>
-    [Range(1, 65535)]
     public int Port { get; set; } = 1443;
 
     /// <summary>Bind address.</summary>
@@ -29,11 +28,9 @@ public sealed class ProxyConfig
     };
 
     /// <summary>Socket buffer size in KB (Python: buffer_size = 256*1024 bytes).</summary>
-    [Range(4, 1024 * 1024)]
     public int BufferSizeKb { get; set; } = 256;
 
     /// <summary>WS pool size per DC bucket; 0 disables pooled direct WS.</summary>
-    [Range(0, 1024)]
     public int PoolSize { get; set; } = 4;
 
     /// <summary>Enable Cloudflare-proxied WS fallback.</summary>
