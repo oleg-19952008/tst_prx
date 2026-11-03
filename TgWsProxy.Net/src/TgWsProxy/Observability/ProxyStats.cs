@@ -51,6 +51,10 @@ public sealed class ProxyStats
     public long H2Requests => Get(ref _h2Requests);
     public long H2Errors => Get(ref _h2Errors);
 
+    /// <summary>Mirror of Python <c>stats.connections_total += n</c>.</summary>
+    public void AddConnectionTotal(long n = 1) => Inc(ref _connectionsTotal, n);
+    /// <summary>Mirror of Python <c>stats.connections_active += n</c> (n may be negative).</summary>
+    public void AddConnectionActive(long n = 1) => Inc(ref _connectionsActive, n);
     public void AddConnectionWs() => Inc(ref _connectionsWs);
     public void AddConnectionH2() => Inc(ref _connectionsH2);
     public void AddConnectionTcpFallback() => Inc(ref _connectionsTcpFallback);

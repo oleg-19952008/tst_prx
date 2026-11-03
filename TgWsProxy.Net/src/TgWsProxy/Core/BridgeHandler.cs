@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.IO.Pipelines;
+using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
@@ -15,6 +16,20 @@ using TgWsProxy.Transport.FakeTls;
 using TgWsProxy.Transport.H2;
 
 namespace TgWsProxy.Core;
+
+/// <summary>Extension helpers: half-close a <see cref="NetworkStream"/> write side.</summary>
+internal static class SocketStreamExtensions
+{
+    /// <summary>Sends FIN without killing the read side (asyncio transport.write_eof analogue).</summary>
+    public static void CloseWrite(this NetworkStream stream)
+    {
+        if (stream.Socket is { } s && s.Connected)
+            s.Shutdown(SocketShutdown.Send);
+    }
+
+    /// <summary><c>Socket.ToStream()</c> equivalent for net9.0-windows targets.</summary>
+    public static NetworkStream GetStream(this Socket socket) => new(socket, ownsSocket: false);
+}
 
 /// <summary>Transport mode detected from the first bytes of a client connection.</summary>
 public enum BridgeMode
@@ -765,10 +780,6 @@ public sealed class BridgeHandler
             {
                 closeReason = $"upstream: {e.GetType().Name}";
             }
-            catch (IOException e)
-            {
-                closeReason = $"upstream: {e.GetType().Name}";
-            }
             catch (EndOfStreamException)
             {
                 closeReason = "upstream: tcp_reset";
@@ -916,12 +927,16 @@ public sealed class BridgeHandler
             }
         }
 
+        // The native packet codec lives on the H2 transport side and reads from a
+        // plain Stream; adapt the client's PipeReader to it.
+        var packetInput = clientInput.AsStream();
+
         async Task UploadAsync()
         {
             while (true)
             {
                 (byte[] body, bool quick) = await MtprotoPacketCodec.ReadPacketAsync(
-                    clientInput, ctx.CltDecryptor, tag, link.Token).ConfigureAwait(false);
+                    packetInput, ctx.CltDecryptor, tag, link.Token).ConfigureAwait(false);
                 await channel.SendAsync(body, quick, ct: link.Token).ConfigureAwait(false);
             }
         }
@@ -1041,47 +1056,12 @@ public sealed class BridgeHandler
             await upStream.WriteAsync(initialData, ct).ConfigureAwait(false);
             await upStream.FlushAsync(ct).ConfigureAwait(false);
 
-            var clientPipe = new Pipe();
-            var feeder = FeedSocketToPipeAsync(client, clientPipe.Writer, ct);
-            var upReader = new StreamPipeReader(upStream);
+            // Dead scaffolding removed: the symmetric raw relay below (CopyUpToClient /
+            // CopyClientToUp) is what actually pumps bytes both ways; the Pipe/feeder
+            // and StreamPipeReader variants were never awaited consistently.
 
-            async Task RelayClientToUp()
-            {
-                try
-                {
-                    while (true)
-                    {
-                        var rr = await clientPipe.Reader.ReadAsync(ct).ConfigureAwait(false);
-                        var buf = rr.Buffer;
-                        if (buf.Length == 0) break;
-                        foreach (var seg in buf)
-                            await upStream.WriteAsync(seg.Memory, ct).ConfigureAwait(false);
-                        clientPipe.Reader.AdvanceTo(buf.End);
-                        await upStream.FlushAsync(ct).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception e) { _ = e; }
-                finally
-                {
-                    try { upStream.CloseWrite(); } catch { }
-                }
-            }
-
-            async Task RelayUpToClient()
-            {
-                var buf = new byte[16384];
-                try
-                {
-                    while (true)
-                    {
-                        int n = await upStream.ReadAsync(buf, ct).ConfigureAwait(false);
-                        if (n == 0) break;
-                        await new SocketPipeWriter(client, Stream.Null /* unused */)
-                            .WriteAsync(buf.AsMemory(0, n), ct).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception e) { _ = e; }
-            }
+            async Task RelayClientToUp() { }
+            async Task RelayUpToClient() { }
 
             // Simpler symmetric implementation: copy both ways over the raw socket stream.
             var networkOut = GetOrCreateClientStream(client);
@@ -1120,11 +1100,11 @@ public sealed class BridgeHandler
                 catch (Exception e) { _ = e; }
                 finally
                 {
-                    try { upStream.CloseWrite(); } catch { }
+                    // Half-close the upstream write side so the masking peer sees EOF.
+                    try { upstream.Client.Shutdown(SocketShutdown.Send); } catch { }
                 }
             }
 
-            _ = feeder; _ = RelayClientToUp; _ = RelayUpToClient; _ = upReader; _ = clientPipe;
             await Task.WhenAny(CopyUpToClient(), CopyClientToUp()).ConfigureAwait(false);
         }
         finally
@@ -1217,6 +1197,7 @@ public sealed class BridgeHandler
             ReadResult rr = await reader.ReadAsync(ct).ConfigureAwait(false);
             var buffer = rr.Buffer;
             SequencePosition consumed = buffer.Start;
+            long consumedUpTo = 0;   // bytes (incl. segments) already copied to ms
             bool found = false;
 
             foreach (var seg in buffer)
@@ -1226,16 +1207,17 @@ public sealed class BridgeHandler
                     if (seg.Span[i] == (byte)'\n')
                     {
                         ms.Write(seg.Span.Slice(0, i + 1));
-                        consumed = buffer.Position.GetSlice(consumed, seg.Start).GetAdvanced(i + 1);
+                        consumedUpTo += i + 1;
                         found = true;
                         break;
                     }
                 }
                 if (found) break;
                 ms.Write(seg.Span);
-                consumed = seg.End;
+                consumedUpTo += seg.Length;
             }
 
+            consumed = buffer.GetPosition(consumedUpTo);
             reader.AdvanceTo(consumed);
             if (found || buffer.Length == 0 || ms.Length > 64 * 1024)
                 break;
@@ -1392,9 +1374,8 @@ internal sealed class FakeTlsRecordCodec
 
         while (true)
         {
-            await BridgeHandler.ReadExactlyAsync(_reader, 5, ct).ConfigureAwait(false)
-                               .ContinueWith(t => t.Result.CopyTo(_header, 0)).WaitAsync(ct)
-                               .ConfigureAwait(false);
+            byte[] hdr = await BridgeHandler.ReadExactlyAsync(_reader, 5, ct).ConfigureAwait(false);
+            hdr.CopyTo(_header, 0);
             byte rtype = _header[0];
             ushort recLen = BinaryPrimitives.ReadUInt16BigEndian(_header.AsSpan(3, 2));
 
@@ -1425,13 +1406,10 @@ internal sealed class FakeTlsRecordCodec
             return Array.Empty<byte>();
         }
         int take = (int)Math.Min(buffer.Length, maxCount);
-        byte[] data = buffer.FirstSlice.Length >= take
-            ? buffer.First(spanScratch(take)).ToArray()
-            : buffer.Extract(0, take).ToArray();
+        byte[] data = new byte[take];
+        buffer.Slice(0, take).CopyTo(data);
         _reader.AdvanceTo(buffer.GetPosition(take));
         return data;
-
-        static int spanScratch(int n) => n;
     }
 
     private void RewritePending(int after)
@@ -1519,43 +1497,45 @@ internal sealed class SocketPipeReader : IAsyncDisposable
 /// </summary>
 internal sealed class SocketPipeWriter : Stream
 {
-    private readonly Socket _socket;
-    private readonly PipeWriter _writer;
+    private readonly Pipe _pipe = new();
     private readonly Task _pump;
     private bool _disposed;
 
     internal SocketPipeWriter(Socket socket, PipeWriter writer)
     {
-        _socket = socket;
-        _writer = writer;
-        _pump = PumpAsync();
+        // `writer` is kept for API compatibility with the call sites that build a
+        // dedicated Pipe pair; writes here go through our own pipe and are pumped
+        // straight to the socket. (The previous implementation tried to reach the
+        // reader side via PipeWriter.Reader, which does not exist.)
+        _ = writer;
+        _pump = PumpAsync(socket);
     }
 
-    private async Task PumpAsync()
+    private async Task PumpAsync(Socket socket)
     {
         NetworkStream stream;
-        try { stream = _socket.GetStream(); }
+        try { stream = socket.GetStream(); }
         catch { return; }
         try
         {
             while (true)
             {
-                ReadResult rr = await _writer.Reader.ReadAsync().ConfigureAwait(false);
+                ReadResult rr = await _pipe.Reader.ReadAsync().ConfigureAwait(false);
                 var buffer = rr.Buffer;
                 foreach (var seg in buffer)
                 {
-                    if (seg.Memory.Length > 0)
-                        await stream.WriteAsync(seg.Memory).ConfigureAwait(false);
+                    if (!seg.IsEmpty)
+                        await stream.WriteAsync(seg).ConfigureAwait(false);
                 }
                 await stream.FlushAsync().ConfigureAwait(false);
-                _writer.Reader.AdvanceTo(buffer.End);
+                _pipe.Reader.AdvanceTo(buffer.End);
                 if (rr.IsCompleted && buffer.Length == 0) break;
             }
         }
         catch { }
         finally
         {
-            try { _writer.Reader.Complete(); } catch { }
+            try { _pipe.Reader.Complete(); } catch { }
         }
     }
 
@@ -1573,11 +1553,12 @@ internal sealed class SocketPipeWriter : Stream
     public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken ct = default)
     {
         if (_disposed) throw new IOException("client writer disposed");
-        buffer.CopyTo(_writer.GetMemory(buffer.Length));
-        _writer.Advance(buffer.Length);
+        PipeWriter writer = _pipe.Writer;
+        buffer.CopyTo(writer.GetMemory(buffer.Length));
+        writer.Advance(buffer.Length);
         try
         {
-            await _writer.FlushAsync(ct).ConfigureAwait(false);
+            await writer.FlushAsync(ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -1596,7 +1577,7 @@ internal sealed class SocketPipeWriter : Stream
     {
         if (_disposed) return;
         _disposed = true;
-        try { _writer.Complete(); } catch { }
+        try { _pipe.Writer.Complete(); } catch { }
     }
 
     protected override void Dispose(bool disposing)
