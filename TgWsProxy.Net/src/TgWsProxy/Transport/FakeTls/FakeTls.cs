@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
+using TgWsProxy.Crypto;
 
 namespace TgWsProxy.Transport.FakeTls;
 
@@ -233,35 +234,32 @@ public static class FakeTls
     }
 
     /// <summary>
-    /// Port of <c>_x25519_public_key()</c>: a real X25519 public key when the
-    /// platform provides it; otherwise random bytes with the top bit cleared
-    /// ("field elements below 2^255"), exactly like the Python fallback.
-    /// NOTE: .NET has no named-type "EccNamedAlgorithm"; the correct API is
-    /// <c>OID.Curve25519/X25519</c> via ECParameters, but raw-key import is not
-    /// supported there either — so for this build we always take the documented
-    /// Python fallback path (random bytes, top bit cleared). Fake TLS never
-    /// completes a handshake, so a syntactically valid share is sufficient
-    /// (matches the <c>X25519PrivateKey is None</c> branch in Python).
+    /// Port of <c>_x25519_public_key()</c>: draws 32 seed bytes through the
+    /// golden-test RNG seam (equivalent to Python
+    /// <c>X25519PrivateKey.generate()</c>, which also consumes 32 os.urandom
+    /// bytes) and returns the real public value <c>clamp(seed) · 9</c> computed
+    /// by the managed RFC 7748 ladder in <see cref="AesCtrCipher"/> — verified
+    /// against <c>tools/golden/x25519.json</c>. If the derivation ever fails,
+    /// falls back to random bytes with the top bit cleared, exactly like the
+    /// Python <c>X25519PrivateKey is None</c> branch (Fake TLS never completes a
+    /// handshake, so a syntactically valid share is sufficient there).
     /// </summary>
     public static byte[] X25519PublicKey()
     {
-        //try
-        //{
-        //    using ECDiffieHellman ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
-        //    var spki = ecdh.PublicKey.ExportSubjectPublicKeyInfo();
-        //    // SPKI ends with 0x04 || raw 32-byte little-endian key
-        //    var key = new byte[32];
-        //    Array.Copy(spki, spki.Length - 32, key, 0, 32);
-        //    return key;
-        //}
-        //catch (CryptographicException)
-        //{
-        //    fall through to the Python-equivalent random fallback below
-        //}
-        var key = new byte[FakeTlsConstants.X25519KeyLen];
-        Rng.GetBytes(key);
-        key[^1] &= 0x7F;
-        return key;
+        var seed = new byte[FakeTlsConstants.X25519KeyLen];
+        try
+        {
+            Rng.GetBytes(seed);
+            return AesCtrCipher.X25519PublicKeyFromSeed(seed);
+        }
+        catch (CryptographicException)
+        {
+            // Python-equivalent fallback: random field element, top bit cleared.
+            var key = new byte[FakeTlsConstants.X25519KeyLen];
+            Rng.GetBytes(key);
+            key[^1] &= 0x7F;
+            return key;
+        }
     }
 
     /// <summary>Port of <c>_server_key_share(info)</c>: (group, key_exchange).</summary>
