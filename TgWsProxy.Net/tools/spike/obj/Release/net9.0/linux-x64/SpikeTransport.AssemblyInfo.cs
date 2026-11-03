@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SpikeTransport")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+06de09198189c63de3faa632eec9ffd072cdaba3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3f9c9b8707854c2765dd80ebef63ac451aff9ad8")]
 [assembly: System.Reflection.AssemblyProductAttribute("SpikeTransport")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SpikeTransport")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -2,7 +2,7 @@
   {
     "test": "hpack_huffman_c41",
     "pass": false,
-    "detail": "Decode returned \u0022www.exampnrbttp:%A/89\u0022, expected \u0022www.example.com\u0022"
+    "detail": "Decode threw HpackException: Invalid Huffman padding."
   },
   {
     "test": "hpack_huffman_full_C.4.1 www.example.com",
@@ -113,7 +113,7 @@
     "check": "h2_preflight",
     "authority": "kws2.pclead.co.uk",
     "pass": false,
-    "error": "H2ProtocolException: Invalid Huffman padding.",
-    "elapsed_ms": 610
+    "error": "H2ProtocolException: HPACK index out of range: 243.",
+    "elapsed_ms": 901
   }
 ]
