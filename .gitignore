@@ -1,2 +1,8 @@
-obj/
 bin/
+obj/
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

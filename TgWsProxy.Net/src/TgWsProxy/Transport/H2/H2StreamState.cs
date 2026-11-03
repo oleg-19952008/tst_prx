@@ -1,7 +1,7 @@
 namespace TgWsProxy.Transport.H2;
 
 /// <summary>HTTP/2 stream lifecycle states (RFC 9113 §5.1).</summary>
-internal enum H2StreamState : byte
+public enum H2StreamState : byte
 {
     Idle,
     ReservedLocal,
@@ -19,7 +19,7 @@ internal enum H2StreamState : byte
 /// <c>proxy/h2_transport.py</c>, but as a plain data holder — all socket I/O
 /// lives on the connection so a single reader task drives every stream.
 /// </summary>
-internal sealed class H2Stream(int id)
+public sealed class H2Stream(int id)
 {
     public int Id { get; } = id;
     public H2StreamState State { get; set; } = H2StreamState.Open;

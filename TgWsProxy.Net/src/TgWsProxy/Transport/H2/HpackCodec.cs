@@ -34,58 +34,68 @@ internal sealed class HpackCodec(int maxDynamicTableSize = 4096)
     /// </summary>
     internal static readonly (string Name, string Value)[] StaticTable =
     [
-        ("", ""),
-        new("authority", ""),
-        new("method", "GET"),
-        new("method", "POST"),
-        new("path", "/"),
-        new("path", "/index.html"),
-        new("scheme", "http"),
-        new("scheme", "https"),
-        new("status", "200"),
-        new("accept-encoding", "gzip, deflate"),
-        new("access-control-allow-origin", "*"),
-        new("age", "0"),
-        new("allow", ""),
-        new("authorization", ""),
-        new("cache-control", ""),
-        new("content-disposition", ""),
-        new("content-encoding", ""),
-        new("content-language", ""),
-        new("content-length", ""),
-        new("content-location", ""),
-        new("content-range", ""),
-        new("content-type", ""),
-        new("cookie", ""),
-        new("date", ""),
-        new("etag", ""),
-        new("expect", ""),
-        new("expires", ""),
-        new("from", ""),
-        new("host", ""),
-        new("if-match", ""),
-        new("if-modified-since", ""),
-        new("if-none-match", ""),
-        new("if-range", ""),
-        new("if-unmodified-since", ""),
-        new("last-modified", ""),
-        new("link", ""),
-        new("location", ""),
-        new("max-forwards", ""),
-        new("proxy-authenticate", ""),
-        new("proxy-authorization", ""),
-        new("range", ""),
-        new("referer", ""),
-        new("refresh", ""),
-        new("retry-after", ""),
-        new("server", ""),
-        new("set-cookie", ""),
-        new("strict-transport-security", ""),
-        new("transfer-encoding", ""),
-        new("user-agent", ""),
-        new("vary", ""),
-        new("via", ""),
-        new("www-authenticate", ""),
+        ("", ""),  // index 0 placeholder
+        new(":authority", ""),  // 1
+        new(":method", "GET"),  // 2
+        new(":method", "POST"),  // 3
+        new(":path", "/"),  // 4
+        new(":path", "/index.html"),  // 5
+        new(":scheme", "http"),  // 6
+        new(":scheme", "https"),  // 7
+        new(":status", "200"),  // 8
+        new(":status", "204"),  // 9
+        new(":status", "206"),  // 10
+        new(":status", "304"),  // 11
+        new(":status", "400"),  // 12
+        new(":status", "404"),  // 13
+        new(":status", "500"),  // 14
+        new("accept-charset", ""),  // 15
+        new("accept-encoding", "gzip, deflate"),  // 16
+        new("accept-language", ""),  // 17
+        new("accept-ranges", ""),  // 18
+        new("accept", ""),  // 19
+        new("access-control-allow-origin", ""),  // 20
+        new("age", ""),  // 21
+        new("allow", ""),  // 22
+        new("authorization", ""),  // 23
+        new("cache-control", ""),  // 24
+        new("content-disposition", ""),  // 25
+        new("content-encoding", ""),  // 26
+        new("content-language", ""),  // 27
+        new("content-length", ""),  // 28
+        new("content-location", ""),  // 29
+        new("content-range", ""),  // 30
+        new("content-type", ""),  // 31
+        new("cookie", ""),  // 32
+        new("date", ""),  // 33
+        new("etag", ""),  // 34
+        new("expect", ""),  // 35
+        new("expires", ""),  // 36
+        new("from", ""),  // 37
+        new("host", ""),  // 38
+        new("if-match", ""),  // 39
+        new("if-modified-since", ""),  // 40
+        new("if-none-match", ""),  // 41
+        new("if-range", ""),  // 42
+        new("if-unmodified-since", ""),  // 43
+        new("last-modified", ""),  // 44
+        new("link", ""),  // 45
+        new("location", ""),  // 46
+        new("max-forwards", ""),  // 47
+        new("proxy-authenticate", ""),  // 48
+        new("proxy-authorization", ""),  // 49
+        new("range", ""),  // 50
+        new("referer", ""),  // 51
+        new("refresh", ""),  // 52
+        new("retry-after", ""),  // 53
+        new("server", ""),  // 54
+        new("set-cookie", ""),  // 55
+        new("strict-transport-security", ""),  // 56
+        new("transfer-encoding", ""),  // 57
+        new("user-agent", ""),  // 58
+        new("vary", ""),  // 59
+        new("via", ""),  // 60
+        new("www-authenticate", ""),  // 61
     ];
 
     static HpackCodec()

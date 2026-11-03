@@ -1,3 +1,4 @@
+using TgWsProxy;
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using TgWsProxy.Core;

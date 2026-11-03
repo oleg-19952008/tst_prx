@@ -6,12 +6,13 @@ using System.Runtime.InteropServices;
 
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Channels;
 
 namespace TgWsProxy.Transport.H2;
 
 /// <summary>Options for <see cref="H2Connection"/> (defaults mirror h2_transport.py).</summary>
-internal sealed record H2ConnectionOptions
+public sealed record H2ConnectionOptions
 {
     public int MaxConcurrentStreams { get; init; } = 64;          // MAX_LANE_REQUESTS cap
     public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(8);   // SETUP_TIMEOUT
@@ -21,12 +22,19 @@ internal sealed record H2ConnectionOptions
     public TimeSpan KeepAliveInterval { get; init; } = TimeSpan.FromSeconds(15);
     public TimeSpan PingTimeout { get; init; } = TimeSpan.FromSeconds(10);
     public string SniHost { get; init; } = "";
+    /// <summary>
+    /// Certificate policy for <see cref="H2Connection.ConnectAsync"/>. Default is strict,
+    /// mirroring Python cf_h2.py::_default_ssl_context() → create_ssl_context() with
+    /// check_hostname=True (certifi bundle + OS roots). Only spike/diagnostic code that
+    /// terminates TLS in-process (self-signed test origins) should set this to true.
+    /// </summary>
+    public bool AllowInsecureTestCertificates { get; init; }
     /// <summary>Local endpoint to bind before connecting (pool source-IP rotation).</summary>
     public IPEndPoint? LocalEndpoint { get; init; }
 }
 
 /// <summary>Result of one client-initiated request/response exchange.</summary>
-internal sealed class H2Response
+public sealed class H2Response
 {
     private readonly H2Stream _stream;
 
@@ -107,10 +115,12 @@ internal sealed class H2Response
 /// DATA, WINDOW_UPDATE flow control (connection + per-stream), RST_STREAM,
 /// GOAWAY and PING/ACK keep-alive with liveness enforcement.
 /// </summary>
-internal sealed class H2Connection : IAsyncDisposable
+public sealed class H2Connection : IAsyncDisposable
 {
     private readonly TcpClient _tcp;
-    private readonly SslStream _ssl;
+    // Created after TCP connect (TcpClient.GetStream() requires a connected socket);
+    // may be a dummy SslStream in CreateAttached (real transport is _net).
+    private SslStream? _ssl;
     private Stream _net;
     private readonly HpackCodec _hpack = new();
     private readonly Channel<(H2FrameType Type, byte Flags, int StreamId, byte[] Payload)> _inbox =
@@ -146,11 +156,11 @@ internal sealed class H2Connection : IAsyncDisposable
     public long PingsSent => Interlocked.Read(ref _pingsSent);
     public long PingsAcked => Interlocked.Read(ref _pingsAcked);
 
-    private H2Connection(TcpClient tcp, SslStream ssl, H2ConnectionOptions options)
+    private H2Connection(TcpClient tcp, SslStream? ssl, Stream net, H2ConnectionOptions options)
     {
         _tcp = tcp;
         _ssl = ssl;
-        _net = ssl;
+        _net = net;
         Options = options;
     }
 
@@ -169,9 +179,7 @@ internal sealed class H2Connection : IAsyncDisposable
         CancellationToken ct = default)
     {
         var tcp = new TcpClient();
-        var ssl = new SslStream(
-            tcp.GetStream(), leaveInnerStreamOpen: false,
-            userCertificateValidationCallback: (_, _, _, _) => true); // pinned fake-CA downstream
+        SslStream? ssl = null;
         try
         {
             using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
@@ -182,10 +190,21 @@ internal sealed class H2Connection : IAsyncDisposable
                 await tcp.ConnectAsync(host, port, timeoutCts.Token).ConfigureAwait(false);
             }
 
+            // Strict validation by default — Python h2_transport.py/cf_h2.py use
+            // create_ssl_context() (certifi + OS roots, check_hostname=True).
+            // The blanket "accept anything" callback is opt-in only (spike/test origins).
+            // NOTE: GetStream() must be called only AFTER the socket is connected.
+            ssl = new SslStream(
+                tcp.GetStream(), leaveInnerStreamOpen: false,
+                userCertificateValidationCallback: options.AllowInsecureTestCertificates
+                    ? static (_, _, _, _) => true
+                    : null);
+
             var clientHello = new SslClientAuthenticationOptions
             {
-                TargetHost = host,
+                TargetHost = string.IsNullOrEmpty(options.SniHost) ? host : options.SniHost,
                 ApplicationProtocols = [SslApplicationProtocol.Http2],
+                CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
             };
             using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
             {
@@ -198,14 +217,14 @@ internal sealed class H2Connection : IAsyncDisposable
                 throw new H2ProtocolException(H2ErrorCode.ProtocolError,
                     $"Origin did not negotiate h2 (ALPN: '{ssl.NegotiatedApplicationProtocol}')");
 
-            var conn = new H2Connection(tcp, ssl, options) { AlpnProtocol = "h2" };
+            var conn = new H2Connection(tcp, ssl, ssl, options) { AlpnProtocol = "h2" };
             conn.Start();
             await conn.WaitForSettingsAckAsync(options.ConnectTimeout, ct).ConfigureAwait(false);
             return conn;
         }
         catch
         {
-            ssl.Dispose();
+            ssl?.Dispose();
             tcp.Dispose();
             throw;
         }
@@ -214,11 +233,11 @@ internal sealed class H2Connection : IAsyncDisposable
     /// <summary>Wraps an already-established, ALPN-negotiated stream (used by tests/fake-TLS paths).</summary>
     internal static H2Connection CreateAttached(Stream duplex, H2ConnectionOptions options, string alpn = "h2")
     {
-        var conn = new H2Connection(new TcpClient(), new SslStream(duplex), options)
+        // No SslStream here — the duplex stream is the real transport (fake-TLS / tests).
+        var conn = new H2Connection(new TcpClient(), ssl: null, duplex, options)
         {
             AlpnProtocol = alpn,
         };
-        conn._net = duplex; // bypass the unused SslStream
         conn.Start();
         return conn;
     }
@@ -1058,7 +1077,7 @@ internal sealed class H2Connection : IAsyncDisposable
         try { if (_readerTask is not null) await _readerTask.ConfigureAwait(false); } catch { }
         try { if (_dispatcherTask is not null) await _dispatcherTask.ConfigureAwait(false); } catch { }
         try { if (_keepAliveTask is not null) await _keepAliveTask.ConfigureAwait(false); } catch { }
-        _ssl.Dispose();
+        _ssl?.Dispose();
         _tcp.Dispose();
         _cts.Dispose();
         _sendGate.Dispose();

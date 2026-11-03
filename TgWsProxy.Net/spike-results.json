@@ -1,0 +1,119 @@
+[
+  {
+    "test": "hpack_huffman_c41",
+    "pass": false,
+    "detail": "Decode threw HpackException: Invalid Huffman padding."
+  },
+  {
+    "test": "hpack_huffman_full_C.4.1 www.example.com",
+    "pass": false,
+    "detail": "got \u0022www.exampnrbttp:%A/89\u0022, want \u0022www.example.com\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_C.4.2 no-cache",
+    "pass": true,
+    "detail": "decoded \u0022no-cache\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_C.4.3 custom-key",
+    "pass": false,
+    "detail": "got \u0022custom-qt\u0022, want \u0022custom-key\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_C.4.3 custom-value",
+    "pass": false,
+    "detail": "got \u0022custom-valuc.0t5g\u0022, want \u0022custom-value\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_C.6.1 status 302",
+    "pass": false,
+    "detail": "got \u002230/l\u0022, want \u0022302\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_C.6.1 cache-control private",
+    "pass": true,
+    "detail": "decoded \u0022private\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_C.6.1 date",
+    "pass": false,
+    "detail": "got \u0022Mon, Ungu2v%iLn28\u0022, want \u0022Mon, 21 Oct 2013 20:13:21 GMT\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_C.6.1 location",
+    "pass": false,
+    "detail": "Invalid Huffman padding."
+  },
+  {
+    "test": "hpack_huffman_full_C.6.2 status 307",
+    "pass": false,
+    "detail": "Invalid Huffman padding."
+  },
+  {
+    "test": "hpack_huffman_full_C.6.2 content-encoding gzip",
+    "pass": true,
+    "detail": "decoded \u0022gzip\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_C.6.3 set-cookie",
+    "pass": false,
+    "detail": "Invalid Huffman padding."
+  },
+  {
+    "test": "hpack_huffman_full_roundtrip-all-256-bytes",
+    "pass": true,
+    "detail": "256/256 bytes round-tripped"
+  },
+  {
+    "test": "hpack_huffman_full_roundtrip-mixed-long",
+    "pass": true,
+    "detail": "6143 bytes round-tripped"
+  },
+  {
+    "test": "hpack_huffman_full_padding-0-to-7-ones",
+    "pass": false,
+    "detail": "Invalid Huffman padding."
+  },
+  {
+    "test": "hpack_huffman_full_empty-input",
+    "pass": true,
+    "detail": "empty -\u003E empty"
+  },
+  {
+    "test": "hpack_huffman_full_neg-padding-8-ones",
+    "pass": true,
+    "detail": "threw as expected"
+  },
+  {
+    "test": "hpack_huffman_full_neg-padding-with-zero-bit",
+    "pass": false,
+    "detail": "padding containing zero bit: expected HpackException, decoded \u0022Z\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_neg-full-eos",
+    "pass": false,
+    "detail": "full EOS sequence: expected HpackException, decoded \u0022\u001F\u0022"
+  },
+  {
+    "test": "hpack_huffman_full_neg-truncated-code",
+    "pass": true,
+    "detail": "threw as expected"
+  },
+  {
+    "test": "hpack_huffman_full_neg-max-output",
+    "pass": true,
+    "detail": "threw bound error as expected"
+  },
+  {
+    "test": "hpack_huffman_full_encodedlength-matches-encode",
+    "pass": true,
+    "detail": "EncodedLength == Encode size for all probes"
+  },
+  {
+    "check": "h2_preflight",
+    "authority": "kws2.pclead.co.uk",
+    "pass": false,
+    "error": "H2ProtocolException: HPACK index out of range: 243.",
+    "elapsed_ms": 901
+  }
+]

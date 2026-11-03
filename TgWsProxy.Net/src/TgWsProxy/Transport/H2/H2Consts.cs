@@ -66,7 +66,7 @@ internal enum H2Flags : byte
 }
 
 /// <summary>HTTP/2 error codes (RFC 9113 §7). Values match <c>h2.errors.ErrorCodes</c>.</summary>
-internal enum H2ErrorCode : uint
+public enum H2ErrorCode : uint
 {
     NoError = 0x0,
     ProtocolError = 0x1,

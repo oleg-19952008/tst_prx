@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using TgWsProxy.Configuration;
 using TgWsProxy.Core;
@@ -81,7 +82,9 @@ public sealed class RawWebSocket : IAsyncDisposable
             catch { /* best-effort, like set_sock_opts */ }
         }
 
-        Stream stream = tcp.GetStream();
+        // NOTE: NetworkStream must only be obtained AFTER ConnectAsync — TcpClient.GetStream()
+        // throws InvalidOperationException while the socket is not connected.
+        Stream? stream = null;
         try
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -89,20 +92,29 @@ public sealed class RawWebSocket : IAsyncDisposable
 
             int port = secure ? 443 : 80;
             await tcp.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
+            stream = tcp.GetStream();
 
             if (secure)
             {
-                // NOTE (deferred fix): the original code passed a
-                // `validateCertificateCallback:` named argument, which does not
-                // exist on any SslStream constructor (CS1739). For this test
-                // build we connect with plain validation; the intended policy
-                // (accept self-signed/special certs for sprinthost.ru fronting)
-                // must be restored via RemoteCertificateValidationCallback or
-                // SslClientAuthenticationOptions.CertificateValidationCallback.
-                var ssl = new SslStream(stream, leaveInnerStreamOpen: false);
+                // Mirrors Python raw_websocket.py:
+                //   ssl_context = _ssl_ctx_fronting if sni else _ssl_ctx
+                // where _ssl_ctx_fronting = create_ssl_context(check_hostname=False).
+                // Fronted connections (SNI override, e.g. "sprinthost.ru") validate the
+                // certificate chain but skip the hostname match, because the DC IP serves
+                // a certificate that doesn't cover the SNI name. Unfronted connections get
+                // full default validation (chain + name against `domain`).
+                var skipHostnameCheck = sni is not null && !string.Equals(sni, domain, StringComparison.OrdinalIgnoreCase);
+                var ssl = new SslStream(
+                    stream, leaveInnerStreamOpen: false,
+                    userCertificateValidationCallback: skipHostnameCheck
+                        ? static (_, cert, chain, errors) =>
+                            cert is not null &&
+                            (errors & ~SslPolicyErrors.RemoteCertificateNameMismatch) == SslPolicyErrors.None
+                        : null);
                 var options = new SslClientAuthenticationOptions
                 {
                     TargetHost = sni ?? domain,
+                    CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
                 };
                 await ssl.AuthenticateAsClientAsync(options, cts.Token).ConfigureAwait(false);
                 stream = ssl;
@@ -135,7 +147,7 @@ public sealed class RawWebSocket : IAsyncDisposable
         }
         catch
         {
-            TryDispose(stream);
+            if (stream is not null) TryDispose(stream);
             tcp.Dispose();
             throw;
         }
