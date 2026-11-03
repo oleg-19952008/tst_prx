@@ -129,10 +129,9 @@ public sealed class MtprotoAes : IDisposable
     public static byte[] Sha256(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
     {
         using var sha = SHA256.Create();
-        var ctx = sha.GetHasher(default);
-        ctx.AppendHash(a);
-        ctx.AppendHash(b);
-        return ctx.GetCurrentHash();
+        sha.TransformBlock(a.ToArray(), 0, a.Length, null, 0);
+        sha.TransformFinalBlock(b.ToArray(), 0, b.Length);
+        return sha.Hash!;
     }
 
     public void Dispose()

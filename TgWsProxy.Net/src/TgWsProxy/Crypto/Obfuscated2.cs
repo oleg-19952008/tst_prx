@@ -3,10 +3,65 @@ using System.Security.Cryptography;
 
 namespace TgWsProxy.Crypto;
 
+/// <summary>Result of a successful obfuscated2 handshake — Python
+/// <c>tg_ws_proxy._try_handshake</c> tuple (dc_id, is_media, proto_tag,
+/// dec_prekey_and_iv).</summary>
+public sealed record HandshakeResult(int Dc, bool IsMedia, byte[] ProtoTag, byte[] ClientDecPrekeyIv)
+{
+    /// <summary>PROTO_*_INT numeric form used by MsgSplitter.</summary>
+    public uint ProtoInt => Obfuscated2.ProtoToInt(ProtoTag);
+}
+
 /// <summary>
-/// MTProto obfuscated2 handshake + key derivation, a byte-for-byte port of the
-/// helpers in Python <c>proxy/utils.py</c>, <c>proxy/tg_ws_proxy.py</c>
+/// Four streaming AES-CTR states for one bridged session — Python
+/// <c>bridge.py::CryptoCtx</c> (clt_dec/clt_enc/tg_enc/tg_dec).
+/// </summary>
+public sealed class CryptoContext : IDisposable
+{
+    public AesCtrCipher CltDecryptor { get; }   // decrypt data from client
+    public AesCtrCipher CltEncryptor { get; }   // encrypt data to client
+    public AesCtrCipher TgEncryptor { get; }    // encrypt data to telegram
+    public AesCtrCipher TgDecryptor { get; }    // decrypt data from telegram
+
+    internal CryptoContext(AesCtrCipher cltDec, AesCtrCipher cltEnc,
+                           AesCtrCipher tgEnc, AesCtrCipher tgDec)
+    {
+        CltDecryptor = cltDec;
+        CltEncryptor = cltEnc;
+        TgEncryptor = tgEnc;
+        TgDecryptor = tgDec;
+    }
+
+    /// <summary>client ciphertext chunk → plaintext (Python ctx.clt_dec.update).</summary>
+    public byte[] ClientToPlain(ReadOnlySpan<byte> data) => CltDecryptor.Update(data);
+    public byte[] PlainToClient(ReadOnlySpan<byte> data) => CltEncryptor.Update(data);
+    public byte[] PlainToTelegram(ReadOnlySpan<byte> data) => TgEncryptor.Update(data);
+    public byte[] TelegramToPlain(ReadOnlySpan<byte> data) => TgDecryptor.Update(data);
+
+    /// <summary>client ciphertext → plaintext → telegram ciphertext.</summary>
+    public byte[] ReencryptUpstream(ReadOnlySpan<byte> cipherFromClient)
+        => TgEncryptor.Update(CltDecryptor.Update(cipherFromClient));
+
+    /// <summary>telegram ciphertext → plaintext → client ciphertext.</summary>
+    public byte[] ReencryptDownstream(ReadOnlySpan<byte> cipherFromTelegram)
+        => CltEncryptor.Update(TgDecryptor.Update(cipherFromTelegram));
+
+    public void Dispose()
+    {
+        CltDecryptor.Dispose();
+        CltEncryptor.Dispose();
+        TgEncryptor.Dispose();
+        TgDecryptor.Dispose();
+    }
+}
+
+/// <summary>
+/// MTProto obfuscated2 handshake + key derivation — the single port of Python
+/// <c>proxy/utils.py</c> constants and <c>proxy/tg_ws_proxy.py</c>
 /// (<c>_try_handshake</c>, <c>_generate_relay_init</c>, <c>_build_crypto_ctx</c>).
+/// Byte-for-byte identical key/IV derivation so that .NET and Python instances
+/// can serve the same clients (PORT_PLAN.md §6 parity, golden vectors in
+/// <c>tools/golden/</c>).
 /// </summary>
 public static class Obfuscated2
 {
@@ -19,6 +74,7 @@ public static class Obfuscated2
     public const int ProtoTagPos = 56;    // PROTO_TAG_POS
     public const int DcIdxPos = 60;       // DC_IDX_POS
 
+    public static ReadOnlySpan<byte> Zero64 => new byte[HandshakeLen];
     public static ReadOnlySpan<byte> ProtoTagAbridged => new byte[] { 0xEF, 0xEF, 0xEF, 0xEF };
     public static ReadOnlySpan<byte> ProtoTagIntermediate => new byte[] { 0xEE, 0xEE, 0xEE, 0xEE };
     public static ReadOnlySpan<byte> ProtoTagSecure => new byte[] { 0xDD, 0xDD, 0xDD, 0xDD };
@@ -54,15 +110,12 @@ public static class Obfuscated2
     /// <summary>Python <c>RESERVED_CONTINUE</c>.</summary>
     private static readonly byte[] ReservedContinue = [0x00, 0x00, 0x00, 0x00];
 
-    /// <summary>Result of <c>_try_handshake</c>: (dc_id, is_media, proto_tag, dec_prekey_and_iv).</summary>
-    public sealed record ClientHandshake(int DcId, bool IsMedia, byte[] ProtoTag, byte[] DecPrekeyAndIv);
-
     /// <summary>
     /// Port of <c>tg_ws_proxy._try_handshake</c>. Decrypts the client's 64-byte
     /// init with AES-CTR(key=SHA256(prekey+secret), iv=iv-from-init) and validates
     /// the protocol tag. Returns <c>null</c> on a wrong secret or unknown tag.
     /// </summary>
-    public static ClientHandshake? TryHandshake(ReadOnlySpan<byte> handshake, ReadOnlySpan<byte> secret)
+    public static HandshakeResult? TryHandshake(ReadOnlySpan<byte> handshake, ReadOnlySpan<byte> secret)
     {
         // Python slices without bounds checks: short input yields a wrong-length
         // prekey and raises in AES — treat anything under 64 bytes as invalid.
@@ -75,15 +128,14 @@ public static class Obfuscated2
         var decIv = decPrekeyAndIv.AsSpan(PrekeyLen, IvLen);
 
         // dec_key = SHA256(dec_prekey + secret)
-        using var decKeyHash = SHA256.Create();
-        var decKey = Hash2(decKeyHash, decPrekey, secret);
+        var decKey = AesCtrCipher.Sha256(decPrekey, secret);
 
         // Python: dec_iv_int = int.from_bytes(dec_iv, 'big'); CTR(dec_iv_int.to_bytes(16,'big'))
         // — an identity transform for a 16-byte IV, kept via BuildCtrIv for parity.
-        var ctrIv = MtprotoAes.BuildCtrIv(decIv);
+        var ctrIv = AesCtrCipher.BuildCtrIv(decIv);
 
-        using var aes = new MtprotoAes(decKey, ctrIv);
-        var decrypted = aes.Update(handshake);
+        using var decryptor = new AesCtrCipher(decKey, ctrIv);
+        var decrypted = decryptor.Update(handshake);
 
         var protoTag = decrypted.AsSpan(ProtoTagPos, 4);
         if (!protoTag.SequenceEqual(ProtoTagAbridged)
@@ -96,11 +148,11 @@ public static class Obfuscated2
         // dc_idx = int.from_bytes(decrypted[60:62], 'little', signed=True)
         short dcIdx = (short)BinaryPrimitives.ReadInt16LittleEndian(decrypted.AsSpan(DcIdxPos, 2));
 
-        return new ClientHandshake(
-            DcId: Math.Abs(dcIdx),
+        return new HandshakeResult(
+            Dc: Math.Abs(dcIdx),
             IsMedia: dcIdx < 0,
             ProtoTag: protoTag.ToArray(),
-            DecPrekeyAndIv: decPrekeyAndIv);
+            ClientDecPrekeyIv: decPrekeyAndIv);
     }
 
     /// <summary>
@@ -110,7 +162,7 @@ public static class Obfuscated2
     /// <paramref name="dcIdx"/> is truncated to 16 bits like Python's
     /// <c>struct.pack('&lt;h', ...)</c>.
     /// </summary>
-    public static byte[] GenerateRelayInit(ReadOnlySpan<byte> protoTag, int dcIdx, RandomNumberGenerator? rng = null)
+    public static byte[] GenerateRelayInit(byte[] protoTag, int dcIdx, RandomNumberGenerator? rng = null)
     {
         ArgumentNullException.ThrowIfNull(protoTag);
         if (protoTag.Length != 4)
@@ -120,7 +172,7 @@ public static class Obfuscated2
         Span<byte> dcBytes = stackalloc byte[2];
         BinaryPrimitives.WriteInt16LittleEndian(dcBytes, unchecked((short)dcIdx));
 
-        rng ??= RandomNumberGenerator.Shared;
+        rng ??= RandomNumberGenerator.Create();
 
         byte[] rnd;
         while (true)
@@ -141,11 +193,13 @@ public static class Obfuscated2
         var encIv = rnd.AsSpan(SkipLen + PrekeyLen, IvLen);
 
         var tailPlain = new byte[8];
-        protoTag[..4].CopyTo(tailPlain);
+        // protoTag is byte[] now; copy explicitly to avoid the ambiguous
+        // T[]->Span/Memory CopyTo overload resolution (CS0121).
+        protoTag.AsSpan(0, 4).CopyTo(tailPlain.AsSpan(0, 4));
         dcBytes.CopyTo(tailPlain.AsSpan(4));
         rng.GetBytes(tailPlain.AsSpan(6, 2));
 
-        using var aes = new MtprotoAes(encKey, encIv);
+        using var aes = new AesCtrCipher(encKey, encIv);
         var encryptedFull = aes.Update(rnd);
 
         // keystream_tail[i] = encrypted_full[56+i] ^ rnd[56+i]
@@ -157,50 +211,9 @@ public static class Obfuscated2
     }
 
     /// <summary>
-    /// Port of <c>bridge.CryptoCtx</c> built by <c>tg_ws_proxy._build_crypto_ctx</c>:
+    /// Port of <c>tg_ws_proxy._build_crypto_ctx(client_dec_prekey_iv, secret, relay_init)</c>:
     /// four streaming AES-CTR contexts (client-decrypt, client-encrypt,
     /// telegram-encrypt, telegram-decrypt) with the handshake already consumed.
-    /// </summary>
-    public sealed class CryptoContext : IDisposable
-    {
-        public MtprotoAes ClientDecryptor { get; }   // clt_dec: decrypt data from client
-        public MtprotoAes ClientEncryptor { get; }   // clt_enc: encrypt data to client
-        public MtprotoAes TelegramEncryptor { get; } // tg_enc: encrypt data to telegram
-        public MtprotoAes TelegramDecryptor { get; } // tg_dec: decrypt data from telegram
-
-        internal CryptoContext(MtprotoAes cltDec, MtprotoAes cltEnc, MtprotoAes tgEnc, MtprotoAes tgDec)
-        {
-            ClientDecryptor = cltDec;
-            ClientEncryptor = cltEnc;
-            TelegramEncryptor = tgEnc;
-            TelegramDecryptor = tgDec;
-        }
-
-        /// <summary>client ciphertext → plaintext → telegram ciphertext.</summary>
-        public byte[] ReencryptUpstream(ReadOnlySpan<byte> cipherFromClient)
-        {
-            var plain = ClientDecryptor.Update(cipherFromClient);
-            return TelegramEncryptor.Update(plain);
-        }
-
-        /// <summary>telegram ciphertext → plaintext → client ciphertext.</summary>
-        public byte[] ReencryptDownstream(ReadOnlySpan<byte> cipherFromTelegram)
-        {
-            var plain = TelegramDecryptor.Update(cipherFromTelegram);
-            return ClientEncryptor.Update(plain);
-        }
-
-        public void Dispose()
-        {
-            ClientDecryptor.Dispose();
-            ClientEncryptor.Dispose();
-            TelegramEncryptor.Dispose();
-            TelegramDecryptor.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Port of <c>tg_ws_proxy._build_crypto_ctx(client_dec_prekey_iv, secret, relay_init)</c>.
     /// <paramref name="clientDecPrekeyIv"/> is the 48-byte slice returned by
     /// <see cref="TryHandshake"/>; <paramref name="relayInit"/> the 64-byte value
     /// returned by <see cref="GenerateRelayInit"/>.
@@ -213,24 +226,22 @@ public static class Obfuscated2
         if (relayInit.Length != HandshakeLen)
             throw new ArgumentException("Must be HANDSHAKE_LEN = 64 bytes", nameof(relayInit));
 
-        using var sha = SHA256.Create();
-
         // --- client side: key = SHA256(prekey + secret), iv from handshake ---
         var cltDecPrekey = clientDecPrekeyIv[..PrekeyLen];
         var cltDecIv = clientDecPrekeyIv.Slice(PrekeyLen, IvLen);
-        var cltDecKey = Hash2(sha, cltDecPrekey, secret);
+        var cltDecKey = AesCtrCipher.Sha256(cltDecPrekey, secret);
 
         // clt_enc_prekey_iv = client_dec_prekey_iv[::-1]
         //   -> prekey' = reverse(iv), iv' = reverse(prekey)
         var cltEncPrekey = Reverse(cltDecIv);
         var cltEncIv = Reverse(cltDecPrekey);
-        var cltEncKey = Hash2(sha, cltEncPrekey, secret);
+        var cltEncKey = AesCtrCipher.Sha256(cltEncPrekey, secret);
 
-        var cltDecryptor = new MtprotoAes(cltDecKey, cltDecIv);
-        var cltEncryptor = new MtprotoAes(cltEncKey, cltEncIv);
+        var cltDecryptor = new AesCtrCipher(cltDecKey, cltDecIv);
+        var cltEncryptor = new AesCtrCipher(cltEncKey, cltEncIv);
 
         // fast-forward client decryptor past the 64-byte init
-        cltDecryptor.Update(new byte[HandshakeLen]);
+        cltDecryptor.Update(Zero64);
 
         // --- relay side: standard obfuscation, raw keys (no secret hash) ---
         var relayEncKey = relayInit.Slice(SkipLen, PrekeyLen);
@@ -241,87 +252,19 @@ public static class Obfuscated2
         var relayDecKey = Reverse(relayDecSlice[PrekeyLen..]);
         var relayDecIv = Reverse(relayDecSlice[..PrekeyLen]);
 
-        var tgEncryptor = new MtprotoAes(relayEncKey, relayEncIv);
-        var tgDecryptor = new MtprotoAes(relayDecKey, relayDecIv);
+        var tgEncryptor = new AesCtrCipher(relayEncKey, relayEncIv);
+        var tgDecryptor = new AesCtrCipher(relayDecKey, relayDecIv);
 
         // Python fast-forwards the telegram encryptor past the 64-byte relay_init
-        tgEncryptor.Update(new byte[HandshakeLen]);
+        tgEncryptor.Update(Zero64);
 
         return new CryptoContext(cltDecryptor, cltEncryptor, tgEncryptor, tgDecryptor);
     }
 
-    // ---- X25519 --------------------------------------------------------------
-
-    /// <summary>
-    /// Raw X25519 scalar multiplication over 32-byte little-endian key material,
-    /// matching <c>cryptography.hazmat.primitives.asymmetric.x25519.X25519PrivateKey.exchange()</c>.
-    /// .NET's <see cref="ECDiffieHellman"/> with the X25519 named curve uses the
-    /// same byte ordering, so keys are passed through unchanged.
-    /// </summary>
-    public static byte[] X25519(ReadOnlySpan<byte> privateKey32, ReadOnlySpan<byte> publicKey32)
-    {
-        if (privateKey32.Length != 32)
-            throw new ArgumentException("X25519 private key must be 32 bytes", nameof(privateKey32));
-        if (publicKey32.Length != 32)
-            throw new ArgumentException("X25519 public key must be 32 bytes", nameof(publicKey32));
-
-        using ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
-        ecdh.ImportParameters(new ECParameters
-        {
-            Curve = EccNamedAlgorithm.X25519,
-            D = privateKey32.ToArray(),
-            Q = BuildRawPublicKey(publicKey32),
-        });
-
-        using peer = ECDiffieHellman.Create();
-        peer.ImportSubjectPublicKeyInfo(BuildSpki(publicKey32), out _);
-
-        // RFC 7748 shared secret: 32-byte little-endian field element.
-        return ecdh.DeriveRawSecretAgreement(peer.PublicKey).ToArray();
-    }
-
-    /// <summary>
-    /// DER BIT STRING payload for an X25519 public key: a leading 0x00 sign byte
-    /// plus the raw 32 bytes, unless the high bit is set — then a 0x00 pad byte is
-    /// inserted so the value stays positive (matches System.Security formatting).
-    /// </summary>
-    private static byte[] BuildRawPublicKey(ReadOnlySpan<byte> raw32)
-    {
-        if ((raw32[31] & 0x80) != 0)
-        {
-            var withPad = new byte[33];
-            raw32.CopyTo(withPad.AsSpan(1));
-            return withPad;
-        }
-        return raw32.ToArray();
-    }
-
-    /// <summary>Build a DER SubjectPublicKeyInfo for an X25519 raw public key.</summary>
-    public static byte[] BuildSpki(ReadOnlySpan<byte> rawPublicKey32)
-    {
-        if (rawPublicKey32.Length != 32)
-            throw new ArgumentException("X25519 public key must be 32 bytes", nameof(rawPublicKey32));
-
-        // SEQUENCE { SEQUENCE { OID 1.3.101.110 }, BIT STRING (0x00 || key) }
-        ReadOnlySpan<byte> header =
-        [
-            0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x6C, 0x6E, 0x03, 0x21, 0x00,
-        ];
-        var spki = new byte[header.Length + 32];
-        header.CopyTo(spki);
-        rawPublicKey32.CopyTo(spki.AsSpan(header.Length));
-        return spki;
-    }
-
-    // ---- small helpers --------------------------------------------------------
-
-    private static byte[] Hash2(SHA256 sha, ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
-    {
-        var ctx = sha.GetHasher(default);
-        ctx.AppendHash(a);
-        ctx.AppendHash(b);
-        return ctx.GetCurrentHash();
-    }
+    /// <summary>Rename of <see cref="BuildCryptoContext"/> kept for call-site parity.</summary>
+    public static CryptoContext BuildCryptoCtx(
+        ReadOnlySpan<byte> clientDecPrekeyIv, ReadOnlySpan<byte> secret, ReadOnlySpan<byte> relayInit)
+        => BuildCryptoContext(clientDecPrekeyIv, secret, relayInit);
 
     private static byte[] Reverse(ReadOnlySpan<byte> data)
     {
@@ -329,6 +272,4 @@ public static class Obfuscated2
         Array.Reverse(copy);
         return copy;
     }
-
-    private static byte[] ReverseSpan(ReadOnlySpan<byte> data) => Reverse(data);
 }

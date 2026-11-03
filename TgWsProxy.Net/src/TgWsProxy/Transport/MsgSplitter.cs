@@ -1,5 +1,5 @@
 using System.Buffers.Binary;
-using TgWsProxy.Core;
+using TgWsProxy.Crypto;
 
 namespace TgWsProxy.Transport;
 
@@ -86,9 +86,9 @@ public sealed class MsgSplitter
     private int? NextPacketLen(byte[] cipher, byte[] plain, int offset, int avail)
     {
         if (avail <= 0) return null;
-        if (_proto == ProtocolConsts.ProtoAbridgedInt)
+        if (_proto == Obfuscated2.ProtoAbridgedInt)
             return NextAbridgedLen(plain, offset, avail);
-        if (_proto is ProtocolConsts.ProtoIntermediateInt or ProtocolConsts.ProtoPaddedIntermediateInt)
+        if (_proto is Obfuscated2.ProtoIntermediateInt or Obfuscated2.ProtoPaddedIntermediateInt)
             return NextIntermediateLen(plain, offset, avail);
         return 0; // unknown protocol → disable after emitting the buffer
     }

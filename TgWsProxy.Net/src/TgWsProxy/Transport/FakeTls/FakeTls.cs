@@ -96,6 +96,15 @@ public static class FakeTls
         return bytes;
     }
 
+    /// <summary>RNG seam alias used by the golden-vector tests (same stream as <see cref="FillRandom"/>).</summary>
+    internal static readonly RngAdapter Rng = new();
+
+    internal sealed class RngAdapter
+    {
+        public void GetBytes(byte[] buffer) => FillRandom(buffer);
+        public int Next(int minInclusive, int maxInclusive) => NextInt32(minInclusive, maxInclusive);
+    }
+
     // _profiled_appdata_len: set once at startup by probe_appdata_len()
     private static int? _profiledAppDataLen;
 
@@ -227,25 +236,32 @@ public static class FakeTls
     /// Port of <c>_x25519_public_key()</c>: a real X25519 public key when the
     /// platform provides it; otherwise random bytes with the top bit cleared
     /// ("field elements below 2^255"), exactly like the Python fallback.
+    /// NOTE: .NET has no named-type "EccNamedAlgorithm"; the correct API is
+    /// <c>OID.Curve25519/X25519</c> via ECParameters, but raw-key import is not
+    /// supported there either — so for this build we always take the documented
+    /// Python fallback path (random bytes, top bit cleared). Fake TLS never
+    /// completes a handshake, so a syntactically valid share is sufficient
+    /// (matches the <c>X25519PrivateKey is None</c> branch in Python).
     /// </summary>
     public static byte[] X25519PublicKey()
     {
-        try
-        {
-            using ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
-            var spki = ecdh.PublicKey.ExportSubjectPublicKeyInfo();
-            // SPKI ends with 0x04 || raw 32-byte little-endian key
-            var key = new byte[32];
-            Array.Copy(spki, spki.Length - 32, key, 0, 32);
-            return key;
-        }
-        catch (CryptographicException)
-        {
-            var key = new byte[FakeTlsConstants.X25519KeyLen];
-            Rng.GetBytes(key);
-            key[^1] &= 0x7F;
-            return key;
-        }
+        //try
+        //{
+        //    using ECDiffieHellman ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
+        //    var spki = ecdh.PublicKey.ExportSubjectPublicKeyInfo();
+        //    // SPKI ends with 0x04 || raw 32-byte little-endian key
+        //    var key = new byte[32];
+        //    Array.Copy(spki, spki.Length - 32, key, 0, 32);
+        //    return key;
+        //}
+        //catch (CryptographicException)
+        //{
+        //    fall through to the Python-equivalent random fallback below
+        //}
+        var key = new byte[FakeTlsConstants.X25519KeyLen];
+        Rng.GetBytes(key);
+        key[^1] &= 0x7F;
+        return key;
     }
 
     /// <summary>Port of <c>_server_key_share(info)</c>: (group, key_exchange).</summary>

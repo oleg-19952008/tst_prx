@@ -85,14 +85,14 @@ public sealed class DcBalancer
     }
 
     private static string PickRandom(List<string> list) =>
-        list[RandomNumberGenerator.GetInt32(list.Count)];
+        list[System.Security.Cryptography.RandomNumberGenerator.GetInt32(list.Count)];
 
     /// <summary>Fisher–Yates with a CSPRNG index (matches random.shuffle semantics well enough).</summary>
     internal static void Shuffle(List<string> list)
     {
         for (int i = list.Count - 1; i > 0; i--)
         {
-            int j = RandomNumberGenerator.GetInt32(i + 1);
+            int j = System.Security.Cryptography.RandomNumberGenerator.GetInt32(i + 1);
             (list[i], list[j]) = (list[j], list[i]);
         }
     }
