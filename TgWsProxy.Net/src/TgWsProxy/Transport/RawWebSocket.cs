@@ -82,7 +82,9 @@ public sealed class RawWebSocket : IAsyncDisposable
             catch { /* best-effort, like set_sock_opts */ }
         }
 
-        Stream stream = tcp.GetStream();
+        // NOTE: NetworkStream must only be obtained AFTER ConnectAsync — TcpClient.GetStream()
+        // throws InvalidOperationException while the socket is not connected.
+        Stream? stream = null;
         try
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -90,6 +92,7 @@ public sealed class RawWebSocket : IAsyncDisposable
 
             int port = secure ? 443 : 80;
             await tcp.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
+            stream = tcp.GetStream();
 
             if (secure)
             {
@@ -144,7 +147,7 @@ public sealed class RawWebSocket : IAsyncDisposable
         }
         catch
         {
-            TryDispose(stream);
+            if (stream is not null) TryDispose(stream);
             tcp.Dispose();
             throw;
         }

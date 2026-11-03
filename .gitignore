@@ -1,7 +1,3 @@
-bin/
 obj/
-*.user
-*.suo
-*.cache
-*.log
-*.tmp
+bin/
+*.nuget.cache

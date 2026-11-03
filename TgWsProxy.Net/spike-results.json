@@ -5,14 +5,14 @@
     "domain": "kws2-1.web.telegram.org",
     "sni": "kws2-1.web.telegram.org",
     "pass": false,
-    "error": "InvalidOperationException: The operation is not allowed on non-connected sockets.",
-    "elapsed_ms": 22
+    "error": "OperationCanceledException: The operation was canceled.",
+    "elapsed_ms": 10019
   },
   {
     "check": "h2_preflight",
     "authority": "kws2.pclead.co.uk",
     "pass": false,
-    "error": "InvalidOperationException: The operation is not allowed on non-connected sockets.",
-    "elapsed_ms": 1
+    "error": "TypeInitializationException: The type initializer for \u0027TgWsProxy.Transport.H2.HpackCodec\u0027 threw an exception.",
+    "elapsed_ms": 495
   }
 ]
