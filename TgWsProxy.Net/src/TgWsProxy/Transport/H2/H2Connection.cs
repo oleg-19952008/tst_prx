@@ -263,7 +263,8 @@ internal sealed class H2Connection : IAsyncDisposable
     public async Task<H2Response> RequestAsync(
         string method, string path, string authority,
         IReadOnlyList<(string Name, byte[] Value)> headers,
-        ReadOnlyMemory<byte> body, CancellationToken ct = default)
+        ReadOnlyMemory<byte> body, Action? onBodySent = null,
+        Action? onResponseStarted = null, CancellationToken ct = default)
     {
         EnsureHealthy();
         if (_nextStreamId > _goawayLastStreamId)
@@ -314,6 +315,9 @@ internal sealed class H2Connection : IAsyncDisposable
                 H2FrameWriter.AppendData(fin, streamId, ReadOnlySpan<byte>.Empty, endStream: true);
                 await SendAsync(fin, ct).ConfigureAwait(false);
                 stream.State = H2StreamState.HalfClosedLocal;
+                // cf_h2.py trace hook `http2.send_request_body.complete`: fires once
+                // the full request body (incl. END_STREAM) has been written out.
+                onBodySent?.Invoke();
             }
 
             // Wait for response headers (Python: `while stream.headers is None`).
@@ -327,6 +331,8 @@ internal sealed class H2Connection : IAsyncDisposable
                 stream.CheckError();
                 EnsureHealthy();
             }
+            // cf_h2.py `response_started()` fires as soon as response headers arrive.
+            onResponseStarted?.Invoke();
             return new H2Response(stream, stream.Headers);
         }
         catch
@@ -343,7 +349,8 @@ internal sealed class H2Connection : IAsyncDisposable
     public async Task<int> PreflightStatusAsync(string authority, string path = "/api",
                                                 CancellationToken ct = default)
     {
-        var resp = await RequestAsync("HEAD", path, authority, [], ReadOnlyMemory<byte>.Empty, ct)
+        var resp = await RequestAsync("HEAD", path, authority, [],
+                             ReadOnlyMemory<byte>.Empty, ct: ct)
                        .ConfigureAwait(false);
         await resp.ReadAllAsync(int.MaxValue, ct).ConfigureAwait(false);
         ReleaseStream(resp.Stream, resetIfOpen: false);
@@ -1004,7 +1011,10 @@ internal sealed class H2Connection : IAsyncDisposable
         foreach (var s in _streams.Values) s.Notify();
     }
 
-    private void ReleaseStream(H2Stream stream, bool resetIfOpen)
+    /// <summary>Detaches a finished/abandoned stream from the connection. Used by
+    /// the cf_h2 lane after it has drained a response (<c>cf_h2.py</c> closes the
+    /// httpx stream once the body is consumed).</summary>
+    internal void ReleaseStream(H2Stream stream, bool resetIfOpen)
     {
         _streams.TryRemove(stream.Id, out _);
         if (resetIfOpen && _error is null && !stream.EndedByPeer &&

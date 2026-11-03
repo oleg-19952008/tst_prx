@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using TgWsProxy.Core;
 using TgWsProxy.Observability;
@@ -376,13 +377,12 @@ internal sealed class HttpLane : IAsyncDisposable
     }
 
     /// <summary>Python <c>summary</c>.</summary>
-    public string Summary() => FormattableString.Invariant(
-        $"lane={LaneId} host={Host} channels={Channels.Count} tcp_connections={TcpConnections} " +
-        $"requests={Requests} replies={Responses} errors={Errors} inflight={Inflight} " +
-        $"max_inflight={MaxInflight} queued_bytes={QueuedBytes} reply_buffer_bytes={ReplyBufferBytes} " +
-        $"replays={Replays} capacity_rotations={CapacityRotations} slow_headers={SlowHeaders} " +
-        $"slow_bodies={SlowBodies} max_headers_ms={MaxHeadersSeconds * 1000:F0} " +
-        $"max_body_ms={MaxBodySeconds * 1000:F0}");
+    public string Summary() => Utils.Inv($"lane={LaneId} host={Host} channels={Channels.Count} tcp_connections={TcpConnections} " +
+                                   "requests={Requests} replies={Responses} errors={Errors} inflight={Inflight} " +
+                                   "max_inflight={MaxInflight} queued_bytes={QueuedBytes} reply_buffer_bytes={ReplyBufferBytes} " +
+                                   "replays={Replays} capacity_rotations={CapacityRotations} slow_headers={SlowHeaders} " +
+                                   "slow_bodies={SlowBodies} max_headers_ms={MaxHeadersSeconds * 1000:F0} " +
+                                   "max_body_ms={MaxBodySeconds * 1000:F0}");
 
     /// <summary>Python <c>close</c>.</summary>
     public async ValueTask DisposeAsync()

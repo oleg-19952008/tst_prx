@@ -13,7 +13,11 @@ namespace TgWsProxy.Transport.H2;
 ///   the native client as a real packet, not just EOF.</description></item>
 /// </list>
 /// </summary>
-internal sealed class NativeDeliveryError(string message) : IOException(message);
+internal sealed class NativeDeliveryError(string message) : ConnectionError(message);
+
+/// <summary>Python <c>OSError.ConnectionError</c> raised by cf_h2.py for dead
+/// lanes/channels/pools (the httpx transport error family).</summary>
+internal class ConnectionError(string message) : IOException(message);
 
 /// <summary>Python <c>_ReplyBufferFull(BufferError)</c>.</summary>
 internal sealed class ReplyBufferFullException(string message) : InvalidOperationException(message);

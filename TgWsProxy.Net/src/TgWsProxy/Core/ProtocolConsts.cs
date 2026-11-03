@@ -41,13 +41,4 @@ public static class ProtocolConsts
             : new[] { $"kws{dc}.web.telegram.org" };
     }
 
-    public static string HumanBytes(double n)
-    {
-        foreach (var unit in new[] { "B", "KB", "MB", "GB" })
-        {
-            if (Math.Abs(n) < 1024) return $"{n:F1}{unit}";
-            n /= 1024;
-        }
-        return $"{n:F1}TB";
-    }
 }

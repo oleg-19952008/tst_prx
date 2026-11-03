@@ -55,7 +55,7 @@ internal sealed class HttpChannel : IAsyncDisposable
     private readonly SemaphoreSlim _sendLock = new(1, 1);  // asyncio.Lock `send_lock`
     private readonly SemaphoreSlim _closeLock = new(1, 1); // asyncio.Lock `close_lock`
     private readonly ConcurrentQueue<object> _queue = new();   // asyncio.Queue(maxsize=16)
-    private readonly SemaphoreSlim _queueSignal = new(0);
+    private readonly AsyncAutoResetEvent _queueSignal = new();
     private int _queueCount;                               // queue.qsize() bound check
 
     private bool _closed;                                  // self.closed
@@ -91,7 +91,7 @@ internal sealed class HttpChannel : IAsyncDisposable
     public int UploadWaitBytes { get; private set; }
     internal bool CloseDone;                               // self.close_done
 
-    private double? DeliveringSince =>
+    internal double? DeliveringSince =>
         _deliveringSinceTicks is { } t ? t / 1000.0 : null;
 
     /// <summary>Python <c>lane.channels.add(self)</c> happens in __init__ (host does it).</summary>
@@ -140,7 +140,7 @@ internal sealed class HttpChannel : IAsyncDisposable
     private bool HasNativeBackpressureLocked() =>
         _replyBytes != 0 || DeliveringSince is not null;
 
-    private readonly ManualResetEventSlim _recoveryWakeup = new(false);
+    private readonly AsyncManualResetEvent _recoveryWakeup = new();
 
     /// <summary>Python <c>MarkReceiving</c> hook used by the lane during body streaming.</summary>
     internal void MarkReceiving(bool value)
@@ -350,13 +350,12 @@ internal sealed class HttpChannel : IAsyncDisposable
             int waitingHeaders = _pending.Values.Count(t =>
                 !t.IsReplay && !t.Receiving && now - t.PendingSince >= CfH2Consts.SlowResponseSeconds);
 
-            return FormattableString.Invariant(
-                $"channel={ChannelId} pending={_pending.Count} replays={_replayPending.Count} " +
-                $"receiving={ReceivingHttpLocked()} ready_bytes={_replyBytes} " +
-                $"native_write={(DeliveringSince is not null ? 1 : 0)} " +
-                $"idle_ms={(now - LastProgress) * 1000:F0} oldest_ms={(now - oldest) * 1000:F0} " +
-                $"native_age_ms={(now - LastNativeSend) * 1000:F0} " +
-                $"recovery_left={recoveryLeft} waiting_headers={waitingHeaders}");
+            return Utils.Inv($"channel={ChannelId} pending={_pending.Count} replays={_replayPending.Count} " +
+                       "receiving={ReceivingHttpLocked()} ready_bytes={_replyBytes} " +
+                       "native_write={(DeliveringSince is not null ? 1 : 0)} " +
+                       "idle_ms={(now - LastProgress) * 1000:F0} oldest_ms={(now - oldest) * 1000:F0} " +
+                       "native_age_ms={(now - LastNativeSend) * 1000:F0} " +
+                       "recovery_left={recoveryLeft} waiting_headers={waitingHeaders}");
         }
     }
 
@@ -378,8 +377,7 @@ internal sealed class HttpChannel : IAsyncDisposable
                 else if (entry.Pending is { } pid && _pending.TryGetValue(pid, out var probe))
                     recovery = probe.Receiving
                         ? "replay-body"
-                        : FormattableString.Invariant(
-                            $"probe-{(now - _pending.GetValueOrDefault(pid)?.PendingSince ?? now) * 1000:F0}ms");
+                        : Utils.Inv($"probe-{(now - _pending.GetValueOrDefault(pid)?.PendingSince ?? now) * 1000:F0}ms");
                 else if (_replayPending.Count >= CfH2Consts.MaxChannelReplays) recovery = "replay-slots";
                 else if (!HasCapacityLocked(entry.Body.Length)) recovery = "channel-capacity";
                 else if (!Lane.HasCapacity(entry.Body.Length)) recovery = "lane-capacity";
@@ -409,16 +407,15 @@ internal sealed class HttpChannel : IAsyncDisposable
                 .Select(t => t.Trace!.Summary(now))
                 .Take(2)
                 .ToList();
-            return FormattableString.Invariant(
-                $"channel={ChannelId} window_ms={(now - previous.at) * 1000:F0} " +
-                $"requests={current.Item2 - previous.requests} replays={current.Item3 - previous.replays} " +
-                $"http_down={current.Item4 - previous.httpBytes} native_down={current.Item5 - previous.down} " +
-                $"small={current.Item6 - previous.small} large={current.Item7 - previous.large} " +
-                $"pending={_pending.Count} ready={_replyBytes} upload_wait={UploadWaitPhase}/" +
-                $"{(UploadWaitSince is null ? 0 : (UploadWaitSince.Value - now) * -1000):F0}ms " +
-                $"native_write_ms={(DeliveringSince is null ? 0 : (DeliveringSince.Value - now) * -1000):F0} " +
-                $"capacity_rotations={CapacityRotations} polls={current.Item8 - previous.polls} " +
-                $"first_poll_ms={pollGap * 1000:F0} probes=[{string.Join("; ", probes)}]");
+            return Utils.Inv($"channel={ChannelId} window_ms={(now - previous.at) * 1000:F0} " +
+                       $"requests={current.Item2 - previous.requests} replays={current.Item3 - previous.replays} " +
+                       $"http_down={current.Item4 - previous.httpBytes} native_down={current.Item5 - previous.down} " +
+                       $"small={current.Item6 - previous.small} large={current.Item7 - previous.large} " +
+                       $"pending={_pending.Count} ready={_replyBytes} upload_wait={UploadWaitPhase}/" +
+                       $"{(UploadWaitSince is null ? 0 : (UploadWaitSince.Value - now) * -1000):F0}ms " +
+                       $"native_write_ms={(DeliveringSince is null ? 0 : (DeliveringSince.Value - now) * -1000):F0} " +
+                       $"capacity_rotations={CapacityRotations} polls={current.Item8 - previous.polls} " +
+                       $"first_poll_ms={pollGap * 1000:F0} probes=[{string.Join("; ", probes)}]");
         }
     }
 
@@ -844,7 +841,7 @@ internal sealed class HttpChannel : IAsyncDisposable
                 WakeReceiver();
                 return reply;
             }
-            await _queueSignal.WaitAsync(50, ct).ConfigureAwait(false);
+            await _queueSignal.WaitAsync(TimeSpan.FromMilliseconds(50), ct).ConfigureAwait(false);
         }
     }
 
@@ -876,10 +873,10 @@ internal sealed class HttpChannel : IAsyncDisposable
                     .ThenBy(e => OverdueInSnapshot(e, now) ? e.Sequence : -e.Sequence)
                     .ToList();
 
+                bool sent = false;
                 foreach (var entry in candidates)
                 {
                     long? replaceId;
-                    bool sent = false;
                     lock (_gate)
                     {
                         if (!ReplayDueLocked(entry, now)) continue;
@@ -1002,8 +999,6 @@ internal sealed class HttpChannel : IAsyncDisposable
         finally
         {
             _closeLock.Release();
-            _recoveryWakeup.Dispose();
-            _queueSignal.Dispose();
             _lifetimeCts.Dispose();
         }
     }
