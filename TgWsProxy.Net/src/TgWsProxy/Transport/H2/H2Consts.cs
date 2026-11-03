@@ -82,9 +82,7 @@ internal enum H2ErrorCode : uint
     EnhanceYourCalm = 0xb,
     ExcessiveLoad = 0xc,
     MissingAuthority = 0xd,
-    MessageError = 0xf,
-    NoReusableConnection = 0x10,
-    SecurityError = 0x11,
+    FrameSizeError = 0x10000001, // h2-library-specific pseudo code (FrameTooLargeError)
 }
 
 /// <summary>HTTP/2 SETTINGS identifiers (RFC 9113 §6.5.2).</summary>

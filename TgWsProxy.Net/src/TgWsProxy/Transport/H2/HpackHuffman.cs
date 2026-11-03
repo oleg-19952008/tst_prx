@@ -104,13 +104,16 @@ internal static class HpackHuffman
             for (int i = bits - 1; i >= 0; i--)
             {
                 int bit = (int)((code >> i) & 1);
-                ref int next = ref (bit == 0 ? ref child0[node] : ref child1[node]);
+                // NOTE: do not hold a ref into the lists — Add() below may
+                // reallocate their backing arrays. Index through the lists instead.
+                int next = bit == 0 ? child0[node] : child1[node];
                 if (next < 0)
                 {
                     next = child0.Count;
                     child0.Add(-1);
                     child1.Add(-1);
                     symbol.Add(-1);
+                    if (bit == 0) child0[node] = next; else child1[node] = next;
                 }
                 node = next;
             }
