@@ -124,20 +124,29 @@ public sealed class WsActivity
         _sampleWsDown = WsDown;
         _sampleNativeDown = NativeDown;
 
+        // NOTE: FormattableString.Invariant needs a *single* interpolated
+        // literal; concatenating several $"" pieces yields plain string and is
+        // rejected (CS1503). Placeholders ({0}..{9}) are filled by
+        // string.Format with invariant culture.
         // Local of static type string — see the NetworkDebug.Debug comment:
         // FormattableString arguments bind to ILogger's generic Log<T0,T1>
         // extension overloads instead of our plain-string helper (CS1503).
-        string text = FormattableString.Invariant(
-            $"client={Label}" +
-            $" window_ms={ToMs(now - previous.Item1):F0}" +
-            $" native_up={NativeUp - previous.Item2}" +
-            $" ws_up={WsUp - previous.Item3}" +
-            $" ws_down={WsDown - previous.Item4}" +
-            $" native_down={NativeDown - previous.Item5}" +
-            $" rx_gap_ms={(_awaitingRx == 0 ? 0 : ToMs(now - _awaitingRx)):F0}" +
-            $" last_rx_ms={(_lastRx == 0 ? -1 : ToMs(now - _lastRx)):F0}" +
-            $" ws_write_ms={(_sending == 0 ? 0 : ToMs(now - _sending)):F0}" +
-            $" native_write_ms={(_writingNative == 0 ? 0 : ToMs(now - _writingNative)):F0}");
+        string text = string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "client={0} window_ms={1:F0} native_up={2} ws_up={3}" +
+            " ws_down={4} native_down={5}" +
+            " rx_gap_ms={6:F0} last_rx_ms={7:F0}" +
+            " ws_write_ms={8:F0} native_write_ms={9:F0}",
+            Label,
+            ToMs(now - previous.Item1),
+            NativeUp - previous.Item2,
+            WsUp - previous.Item3,
+            WsDown - previous.Item4,
+            NativeDown - previous.Item5,
+            _awaitingRx == 0 ? 0 : ToMs(now - _awaitingRx),
+            _lastRx == 0 ? -1 : ToMs(now - _lastRx),
+            _sending == 0 ? 0 : ToMs(now - _sending),
+            _writingNative == 0 ? 0 : ToMs(now - _writingNative));
         return text;
     }
 
@@ -146,10 +155,16 @@ public sealed class WsActivity
     {
         var now = NowTicks();
         _owner.Unregister(this);
-        string text = FormattableString.Invariant(
-            $"WS END {Dc} {Summary(now)} first_reply_ms={(_firstReply == 0 ? -1 : ToMs(_firstReply)):F0} " +
-            $"max_rx_gap_ms={MaxRxDelayMs:F0} max_ws_write_ms={MaxSendMs:F0} " +
-            $"max_native_write_ms={MaxNativeWriteMs:F0}");
+        string text = string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "WS END {0} {1} first_reply_ms={2:F0} max_rx_gap_ms={3:F0}" +
+            " max_ws_write_ms={4:F0} max_native_write_ms={5:F0}",
+            Dc,
+            Summary(now),
+            _firstReply == 0 ? -1 : ToMs(_firstReply),
+            MaxRxDelayMs,
+            MaxSendMs,
+            MaxNativeWriteMs);
         _owner.Debug(text);
     }
 }
