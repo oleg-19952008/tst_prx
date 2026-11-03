@@ -162,7 +162,7 @@ public static class Obfuscated2
     /// <paramref name="dcIdx"/> is truncated to 16 bits like Python's
     /// <c>struct.pack('&lt;h', ...)</c>.
     /// </summary>
-    public static byte[] GenerateRelayInit(ReadOnlySpan<byte> protoTag, int dcIdx, RandomNumberGenerator? rng = null)
+    public static byte[] GenerateRelayInit(byte[] protoTag, int dcIdx, RandomNumberGenerator? rng = null)
     {
         ArgumentNullException.ThrowIfNull(protoTag);
         if (protoTag.Length != 4)
@@ -172,7 +172,7 @@ public static class Obfuscated2
         Span<byte> dcBytes = stackalloc byte[2];
         BinaryPrimitives.WriteInt16LittleEndian(dcBytes, unchecked((short)dcIdx));
 
-        rng ??= RandomNumberGenerator.Shared;
+        rng ??= RandomNumberGenerator.Create();
 
         byte[] rnd;
         while (true)
@@ -193,7 +193,9 @@ public static class Obfuscated2
         var encIv = rnd.AsSpan(SkipLen + PrekeyLen, IvLen);
 
         var tailPlain = new byte[8];
-        protoTag[..4].CopyTo(tailPlain);
+        // protoTag is byte[] now; copy explicitly to avoid the ambiguous
+        // T[]->Span/Memory CopyTo overload resolution (CS0121).
+        protoTag.AsSpan(0, 4).CopyTo(tailPlain.AsSpan(0, 4));
         dcBytes.CopyTo(tailPlain.AsSpan(4));
         rng.GetBytes(tailPlain.AsSpan(6, 2));
 

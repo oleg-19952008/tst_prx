@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Runtime.InteropServices;
 
 using System.Net.Security;
 using System.Net.Sockets;
@@ -74,7 +75,8 @@ internal sealed class H2Response
             if (chunk is not null)
             {
                 Interlocked.Add(ref _stream._bytesDelivered, chunk.Length);
-                _stream.Connection!.StreamConsumed(stream, chunk.Length);
+                // H2Response exposes the stream as `Stream`; local `stream` was a typo.
+                _stream.Connection!.StreamConsumed(Stream, chunk.Length);
                 yield return chunk;
                 continue;
             }
@@ -594,8 +596,8 @@ internal sealed class H2Connection : IAsyncDisposable
             throw new H2ProtocolException(H2ErrorCode.FrameSizeError, "SETTINGS payload not a multiple of 6.");
         foreach (var entry in MemoryMarshalExtensions.Chunk(payload, 6))
         {
-            ushort id = BinaryPrimitives.ReadUInt16BigEndian(entry);
-            uint value = BinaryPrimitives.ReadUInt32BigEndian(entry.Slice(2));
+            ushort id = BinaryPrimitives.ReadUInt16BigEndian(entry.Span);
+            uint value = BinaryPrimitives.ReadUInt32BigEndian(entry.Span.Slice(2));
             switch ((H2SettingId)id)
             {
                 case H2SettingId.MaxConcurrentStreams:

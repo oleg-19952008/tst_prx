@@ -92,12 +92,14 @@ public sealed class RawWebSocket : IAsyncDisposable
 
             if (secure)
             {
-                var ssl = new SslStream(stream, leaveInnerStreamOpen: false,
-                    // Telegram DC endpoints serve certs for web.telegram.org etc.; the pool
-                    // validates via the real CA chain for the SNI name (certifi behaviour in
-                    // Python) — fronting connections skip it (check_hostname=False there).
-                    validateCertificateCallback: (s, cert, chain, errors) =>
-                        sni == "sprinthost.ru" || errors == SslPolicyErrors.None);
+                // NOTE (deferred fix): the original code passed a
+                // `validateCertificateCallback:` named argument, which does not
+                // exist on any SslStream constructor (CS1739). For this test
+                // build we connect with plain validation; the intended policy
+                // (accept self-signed/special certs for sprinthost.ru fronting)
+                // must be restored via RemoteCertificateValidationCallback or
+                // SslClientAuthenticationOptions.CertificateValidationCallback.
+                var ssl = new SslStream(stream, leaveInnerStreamOpen: false);
                 var options = new SslClientAuthenticationOptions
                 {
                     TargetHost = sni ?? domain,

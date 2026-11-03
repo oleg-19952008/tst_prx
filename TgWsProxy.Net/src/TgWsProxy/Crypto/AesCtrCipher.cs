@@ -134,56 +134,57 @@ public sealed class AesCtrCipher : IDisposable
     public static byte[] Sha256(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
     {
         using var sha = SHA256.Create();
-        var ctx = sha.GetHasher(default);
-        ctx.AppendHash(a);
-        ctx.AppendHash(b);
-        return ctx.GetCurrentHash();
+        sha.TransformBlock(a.ToArray(), 0, a.Length, null, 0);
+        sha.TransformFinalBlock(b.ToArray(), 0, b.Length);
+        return sha.Hash!;
     }
 
     /// <summary>
     /// Raw X25519 scalar multiplication over 32-byte little-endian key material,
     /// matching <c>cryptography.hazmat.primitives.asymmetric.x25519.X25519PrivateKey.exchange()</c>
-    /// (golden vectors: <c>tools/golden/x25519.json</c>). .NET's
-    /// <see cref="ECDiffieHellman"/> X25519 support uses the same byte ordering,
-    /// so keys are passed through unchanged.
+    /// (golden vectors: <c>tools/golden/x25519.json</c>).
+    /// NOTE (deferred fix): the implementation below is broken — ECParameters
+    /// cannot carry a raw X25519 curve/key and <c>EccNamedAlgorithm</c> does not
+    /// exist in System.Security.Cryptography. It is kept commented-out until the
+    /// real port lands; no caller uses it yet (FakeTls only generates public keys).
     /// </summary>
-    public static byte[] X25519(ReadOnlySpan<byte> privateKey32, ReadOnlySpan<byte> publicKey32)
-    {
-        if (privateKey32.Length != 32)
-            throw new ArgumentException("X25519 private key must be 32 bytes", nameof(privateKey32));
-        if (publicKey32.Length != 32)
-            throw new ArgumentException("X25519 public key must be 32 bytes", nameof(publicKey32));
+    //public static byte[] X25519(ReadOnlySpan<byte> privateKey32, ReadOnlySpan<byte> publicKey32)
+    //{
+    //    if (privateKey32.Length != 32)
+    //        throw new ArgumentException("X25519 private key must be 32 bytes", nameof(privateKey32));
+    //    if (publicKey32.Length != 32)
+    //        throw new ArgumentException("X25519 public key must be 32 bytes", nameof(publicKey32));
+    //
+    //    using ECDiffieHellman ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
+    //    ecdh.ImportParameters(new ECParameters
+    //    {
+    //        Curve = EccNamedAlgorithm.X25519,
+    //        D = privateKey32.ToArray(),
+    //        Q = BuildRawPublicKey(publicKey32),
+    //    });
+    //
+    //    using ECDiffieHellman peer = ECDiffieHellman.Create();
+    //    peer.ImportSubjectPublicKeyInfo(BuildSpki(publicKey32), out _);
+    //
+    //    // RFC 7748 shared secret: 32-byte little-endian field element.
+    //    return ecdh.DeriveRawSecretAgreement(peer.PublicKey).ToArray();
+    //}
 
-        using ECDiffieHellman ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
-        ecdh.ImportParameters(new ECParameters
-        {
-            Curve = EccNamedAlgorithm.X25519,
-            D = privateKey32.ToArray(),
-            Q = BuildRawPublicKey(publicKey32),
-        });
-
-        using ECDiffieHellman peer = ECDiffieHellman.Create();
-        peer.ImportSubjectPublicKeyInfo(BuildSpki(publicKey32), out _);
-
-        // RFC 7748 shared secret: 32-byte little-endian field element.
-        return ecdh.DeriveRawSecretAgreement(peer.PublicKey).ToArray();
-    }
-
-    /// <summary>
-    /// DER BIT STRING payload for an X25519 public key: the raw 32 bytes, with a
-    /// leading 0x00 pad byte when the high bit is set so the value stays positive
-    /// (matches System.Security formatting).
-    /// </summary>
-    private static byte[] BuildRawPublicKey(ReadOnlySpan<byte> raw32)
-    {
-        if ((raw32[31] & 0x80) != 0)
-        {
-            var withPad = new byte[33];
-            raw32.CopyTo(withPad.AsSpan(1));
-            return withPad;
-        }
-        return raw32.ToArray();
-    }
+    ///// <summary>
+    ///// DER BIT STRING payload for an X25519 public key: the raw 32 bytes, with a
+    ///// leading 0x00 pad byte when the high bit is set so the value stays positive
+    ///// (matches System.Security formatting).
+    ///// </summary>
+    //private static byte[] BuildRawPublicKey(ReadOnlySpan<byte> raw32)
+    //{
+    //    if ((raw32[31] & 0x80) != 0)
+    //    {
+    //        var withPad = new byte[33];
+    //        raw32.CopyTo(withPad.AsSpan(1));
+    //        return withPad;
+    //    }
+    //    return raw32.ToArray();
+    //}
 
     /// <summary>Build a DER SubjectPublicKeyInfo for an X25519 raw public key.</summary>
     public static byte[] BuildSpki(ReadOnlySpan<byte> rawPublicKey32)
