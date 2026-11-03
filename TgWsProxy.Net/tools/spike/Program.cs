@@ -43,6 +43,14 @@ Console.WriteLine($"[HPACK-C.4.1] {(huffOk ? "PASS" : "FAIL")} — {huffDetail}"
 results.Add(new Dictionary<string, object?> { ["test"] = "hpack_huffman_c41", ["pass"] = huffOk, ["detail"] = huffDetail });
 if (!huffOk) failures++;
 
+// [HPACK-FULL] offline RFC 7541 App. B/C suite: positive vectors, round-trips,
+// padding acceptance and negative cases. Independent reference table in the test.
+foreach (var c in HuffmanFullTest.Run())
+{
+    Console.WriteLine($"[HPACK-FULL:{c.Name}] {(c.Ok ? "PASS" : "FAIL")} — {c.Detail}");
+    results.Add(new Dictionary<string, object?> { ["test"] = $"hpack_huffman_full_{c.Name}", ["pass"] = c.Ok, ["detail"] = c.Detail });
+}
+failures = results.Count(r => (bool)r["pass"] == false);
 
 if (!opts.SkipWs)
     results.Add(await RunWsSpikeAsync(opts));

@@ -55,7 +55,10 @@ public static class HpackHuffman
         28, 30, 28, 28, 28, 28, 28, 28, 28, 28, 30, 28,
         28, 28, 28, 28, 28, 28, 28, 28, 6, 10, 10, 12,
         13, 6, 8, 11, 10, 10, 8, 11, 8, 6, 6, 6,
-        5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 7, 12,
+        // RFC 7541 App. B: symbol 59 (';') is (0xfb, 8). The value 12 was a data bug:
+        // 0xfb read as a 12-bit code (0x0fb) is prefixed by '1' (0x1, len 5), which
+        // broke prefix-freeness and corrupted the decode trie. Codes array untouched.
+        5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 7, 8,
         15, 6, 12, 10, 13, 6, 7, 7, 7, 7, 7, 7,
         7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
         7, 7, 7, 7, 8, 7, 8, 13, 19, 13, 14, 6,

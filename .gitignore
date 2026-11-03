@@ -1,6 +1,2 @@
 obj/
 bin/
-*.nuget.props
-*.nuget.targets
-project.assets.json
-project.nuget.cache
