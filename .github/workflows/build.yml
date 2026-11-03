@@ -1,0 +1,48 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  win-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore TgWsProxy.Net/TgWsProxy.sln
+
+      - name: Build
+        run: dotnet build TgWsProxy.Net/TgWsProxy.sln -c Release --no-restore
+
+      - name: Smoke test (--version)
+        run: |
+          $exe = "TgWsProxy.Net/src/TgWsProxy/bin/Release/net9.0-windows/win-x64/TgWsProxy.exe"
+          & $exe --version
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Publish single-file win-x64
+        run: >
+          dotnet publish TgWsProxy.Net/src/TgWsProxy/TgWsProxy.csproj
+          -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true
+          -o artifacts
+
+      - name: Zip artifact (exe + appsettings.json + LICENSE)
+        run: |
+          Copy-Item TgWsProxy.Net/src/TgWsProxy/appsettings.json artifacts/appsettings.json -Force
+          if (Test-Path tg-ws-proxy-main_py/LICENSE) { Copy-Item tg-ws-proxy-main_py/LICENSE artifacts/LICENSE -Force }
+          Compress-Archive -Path artifacts/* -DestinationPath TgWsProxy-win-x64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TgWsProxy-win-x64
+          path: TgWsProxy-win-x64.zip

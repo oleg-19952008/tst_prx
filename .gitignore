@@ -1,0 +1,6 @@
+bin/
+obj/
+*.user
+artifacts/
+# .NET build output
+[Tt]humbs.db
