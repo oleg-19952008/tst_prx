@@ -81,37 +81,17 @@ public sealed class ProxyConfig
     }
 }
 
-/// <summary>Startup validation — PORT_PLAN.md §2 step 3.</summary>
-public sealed class ProxyConfigValidator : IValidateOptions<ProxyConfig>
+/// <summary>
+/// Default values mirroring Python <c>proxy/config.py</c> / <c>utils/default_config.py</c>,
+/// plus the startup secret generator used by <see cref="ProxyConfigValidator"/>.
+/// </summary>
+public static class Defaults
 {
-    public ValidateOptionsResult Validate(string? name, ProxyConfig options)
+    /// <summary>Python: <c>os.urandom(16).hex()</c> — 16 random bytes as lowercase hex.</summary>
+    public static string CreateRandomSecret()
     {
-        var failures = new List<string>();
-
-        if (options.Port is < 1 or > 65535)
-            failures.Add($"Proxy:Port must be 1-65535, got {options.Port}");
-
-        if (!string.IsNullOrEmpty(options.Secret))
-        {
-            var s = options.Secret.Trim();
-            if (s.Length != 32 || !System.Text.RegularExpressions.Regex.IsMatch(s, "^[0-9a-fA-F]{32}$"))
-                failures.Add("Proxy:Secret must be exactly 32 hex characters");
-        }
-
-        foreach (var (dcStr, ip) in options.DcRedirects)
-        {
-            if (!int.TryParse(dcStr, out _))
-                failures.Add($"Proxy:DcRedirects key \"{dcStr}\" is not a DC number");
-            else if (!System.Net.IPAddress.TryParse(ip, out var addr)
-                     || addr.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
-                failures.Add($"Proxy:DcRedirects[\"{dcStr}\"]=\"{ip}\" is not a valid IPv4 address");
-        }
-
-        if (options.H2Enabled && options.CfProxyH2Media && !options.FallbackCfProxy)
-            failures.Add("Inconsistent flags: CfProxyH2Media requires FallbackCfProxy");
-
-        return failures.Count > 0
-            ? ValidateOptionsResult.Fail(failures)
-            : ValidateOptionsResult.Success;
+        Span<byte> buf = stackalloc byte[16];
+        System.Security.Cryptography.RandomNumberGenerator.Fill(buf);
+        return Convert.ToHexStringLower(buf);
     }
 }

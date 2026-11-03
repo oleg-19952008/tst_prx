@@ -54,8 +54,8 @@ public sealed class AesCtrCipher : IDisposable
         {
             if (_ksPos == 16)
             {
-                _aes.TransformBlock(_counter, 0, _keystream, 0);
-                IncrementCounter();
+                _aes.EncryptEcb(_counter, _keystream, PaddingMode.None);
+                IncrementCounter(_counter);
                 _ksPos = 0;
             }
             int take = Math.Min(16 - _ksPos, input.Length - i);

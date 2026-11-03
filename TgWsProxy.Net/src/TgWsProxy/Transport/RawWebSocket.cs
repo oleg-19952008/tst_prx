@@ -92,12 +92,12 @@ public sealed class RawWebSocket : IAsyncDisposable
 
             if (secure)
             {
-                var ssl = new SslStream(stream, leaveInnerStreamOpen: false,
-                    // Telegram DC endpoints serve certs for web.telegram.org etc.; the pool
-                    // validates via the real CA chain for the SNI name (certifi behaviour in
-                    // Python) — fronting connections skip it (check_hostname=False there).
-                    validateCertificateCallback: (s, cert, chain, errors) =>
-                        sni == "sprinthost.ru" || errors == SslPolicyErrors.None);
+                // Telegram DC endpoints serve certs for web.telegram.org etc.; the pool
+                // validates via the real CA chain for the SNI name (certifi behaviour in
+                // Python) — fronting connections skip it (check_hostname=False there).
+                RemoteCertificateValidationCallback validate = (_, cert, chain, errors) =>
+                    sni == "sprinthost.ru" || errors == SslPolicyErrors.None;
+                var ssl = new SslStream(stream, leaveInnerStreamOpen: false, validate);
                 var options = new SslClientAuthenticationOptions
                 {
                     TargetHost = sni ?? domain,

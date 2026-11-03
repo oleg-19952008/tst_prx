@@ -74,7 +74,7 @@ internal sealed class H2Response
             if (chunk is not null)
             {
                 Interlocked.Add(ref _stream._bytesDelivered, chunk.Length);
-                _stream.Connection!.StreamConsumed(stream, chunk.Length);
+                _stream.Connection!.StreamConsumed(_stream, chunk.Length);
                 yield return chunk;
                 continue;
             }
@@ -592,8 +592,9 @@ internal sealed class H2Connection : IAsyncDisposable
         }
         if (payload.Length % 6 != 0)
             throw new H2ProtocolException(H2ErrorCode.FrameSizeError, "SETTINGS payload not a multiple of 6.");
-        foreach (var entry in MemoryMarshalExtensions.Chunk(payload, 6))
+        for (int off = 0; off + 6 <= payload.Length; off += 6)
         {
+            var entry = payload.AsSpan(off, 6);
             ushort id = BinaryPrimitives.ReadUInt16BigEndian(entry);
             uint value = BinaryPrimitives.ReadUInt32BigEndian(entry.Slice(2));
             switch ((H2SettingId)id)
@@ -1062,11 +1063,3 @@ internal sealed class H2Connection : IAsyncDisposable
 }
 
 /// <summary>Small helper: iterate fixed-size chunks of an array as spans.</summary>
-internal static class MemoryMarshalExtensions
-{
-    public static IEnumerable<ReadOnlyMemory<byte>> Chunk(byte[] data, int size)
-    {
-        for (int i = 0; i + size <= data.Length; i += size)
-            yield return data.AsMemory(i, size);
-    }
-}

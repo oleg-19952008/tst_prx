@@ -52,12 +52,14 @@ public sealed class ProxyConfigValidator : IValidateOptions<ProxyConfig>, IPostC
         if (options.DcRedirects.Count == 0)
             failures.Add("Proxy:DcRedirects must contain at least one \"<dc>\": \"<ip>\" entry.");
 
-        foreach (var (dc, ip) in options.DcRedirects)
+        // DcRedirects is Dictionary<string,string> in JSON — validate the key text.
+        foreach (var (dcStr, ip) in options.DcRedirects)
         {
-            if (dc is < 1 or > 1000)
-                failures.Add($"Proxy:DcRedirects key \"{dc}\" must be a positive DC number.");
+            if (!int.TryParse(dcStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var dc)
+                || dc is < 1 or > 1000)
+                failures.Add($"Proxy:DcRedirects key \"{dcStr}\" must be a positive DC number.");
             if (!IsValidIpv4(ip))
-                failures.Add($"Proxy:DcRedirects[\"{dc}\"] = \"{ip}\" is not a valid IPv4 address.");
+                failures.Add($"Proxy:DcRedirects[\"{dcStr}\"] = \"{ip}\" is not a valid IPv4 address.");
         }
 
         foreach (var domain in options.CfProxyUserDomains.Concat(options.CfProxyWorkerDomains))

@@ -106,7 +106,7 @@ public static class Obfuscated2
 
         // keystream over the last 8 bytes: ks[i] = encrypted_full[i] ^ rnd[i], i in [56..64)
         var tailPlain = new byte[8];
-        protoTag.CopyTo(tailPlain, 0);
+        protoTag.CopyTo(tailPlain.AsSpan(0));
         BinaryPrimitives.WriteInt16LittleEndian(tailPlain.AsSpan(4, 2), dcIdx);
         RandomNumberGenerator.Fill(tailPlain.AsSpan(6, 2));
 
@@ -150,6 +150,74 @@ public static class Obfuscated2
         tgEncryptor.Update(ProtocolConsts.Zero64);
 
         return new CryptoContext(cltDecryptor, cltEncryptor, tgEncryptor, tgDecryptor);
+    }
+
+    // ---- X25519 --------------------------------------------------------------
+
+    /// <summary>
+    /// Raw X25519 scalar multiplication over 32-byte little-endian key material,
+    /// matching <c>cryptography.hazmat.primitives.asymmetric.x25519.X25519PrivateKey.exchange()</c>.
+    /// .NET's <see cref="ECDiffieHellman"/> with the X25519 named curve uses the same
+    /// byte ordering (RFC 7748), so keys are passed through unchanged. Used by the
+    /// FakeTLS key_share handling and obfuscated2 ephemeral pairs (PORT_PLAN.md §3 A.2).
+    /// </summary>
+    public static byte[] X25519(ReadOnlySpan<byte> privateKey32, ReadOnlySpan<byte> publicKey32)
+    {
+        if (privateKey32.Length != 32)
+            throw new ArgumentException("X25519 private key must be 32 bytes", nameof(privateKey32));
+        if (publicKey32.Length != 32)
+            throw new ArgumentException("X25519 public key must be 32 bytes", nameof(publicKey32));
+
+        using var ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
+        ecdh.ImportParameters(new ECParameters
+        {
+            Curve = EccNamedAlgorithm.X25519,
+            D = privateKey32.ToArray(),
+            Q = new ECPoint
+            {
+                X = BuildRawPublicKey(publicKey32),
+                Y = Array.Empty<byte>(),
+            },
+        });
+
+        using var peer = ECDiffieHellman.Create();
+        peer.ImportSubjectPublicKeyInfo(BuildSpki(publicKey32), out _);
+
+        // RFC 7748 shared secret: 32-byte little-endian field element.
+        return ecdh.DeriveRawSecretAgreement(peer.PublicKey).ToArray();
+    }
+
+    /// <summary>
+    /// DER BIT STRING payload for an X25519 public key: the raw 32 bytes, unless the
+    /// high bit is set — then a leading 0x00 pad byte keeps the value positive
+    /// (matches System.Security's formatting of X25519 public points).
+    /// </summary>
+    private static byte[] BuildRawPublicKey(ReadOnlySpan<byte> raw32)
+    {
+        if ((raw32[31] & 0x80) != 0)
+        {
+            var withPad = new byte[33];
+            raw32.CopyTo(withPad.AsSpan(1));
+            return withPad;
+        }
+        return raw32.ToArray();
+    }
+
+    /// <summary>Build a DER SubjectPublicKeyInfo for an X25519 raw public key.</summary>
+    public static byte[] BuildSpki(ReadOnlySpan<byte> rawPublicKey32)
+    {
+        if (rawPublicKey32.Length != 32)
+            throw new ArgumentException("X25519 public key must be 32 bytes", nameof(rawPublicKey32));
+
+        // SEQUENCE { SEQUENCE { OID 1.3.101.110 }, BIT STRING (0x00 || key) }
+        ReadOnlySpan<byte> header =
+        [
+            0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x6C, 0x6E, 0x03, 0x21, 0x00,
+        ];
+        var spki = new byte[header.Length + 32];
+        header.CopyTo(spki);
+        rawPublicKey32.CopyTo(spki.AsSpan(header.Length));
+        return spki;
     }
 
     private static byte[] Reverse(byte[] src)

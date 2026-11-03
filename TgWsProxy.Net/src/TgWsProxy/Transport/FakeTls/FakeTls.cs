@@ -232,7 +232,7 @@ public static class FakeTls
     {
         try
         {
-            using ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
+            using var ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
             var spki = ecdh.PublicKey.ExportSubjectPublicKeyInfo();
             // SPKI ends with 0x04 || raw 32-byte little-endian key
             var key = new byte[32];
@@ -242,7 +242,7 @@ public static class FakeTls
         catch (CryptographicException)
         {
             var key = new byte[FakeTlsConstants.X25519KeyLen];
-            Rng.GetBytes(key);
+            FillRandom(key);
             key[^1] &= 0x7F;
             return key;
         }
@@ -256,7 +256,7 @@ public static class FakeTls
             && shareLen == FakeTlsConstants.X25519Mlkem768ClientShareLen)
         {
             var mlkem = new byte[FakeTlsConstants.Mlkem768CiphertextLen];
-            Rng.GetBytes(mlkem);
+            FillRandom(mlkem);
             var x25519 = X25519PublicKey();
             var exchange = new byte[mlkem.Length + x25519.Length];
             mlkem.CopyTo(exchange, 0);
@@ -272,7 +272,7 @@ public static class FakeTls
         if (_profiledAppDataLen.HasValue)
             return _profiledAppDataLen.Value;
         var (lo, hi) = FakeTlsConstants.FallbackAppDataRange;
-        return RandomNumberGenerator.GetInt32(lo, hi + 1); // Python randint is inclusive
+        return NextInt32(lo, hi); // Python randint is inclusive
     }
 
     /// <summary>
@@ -339,7 +339,7 @@ public static class FakeTls
         shMs.Write(FakeTlsConstants.TlsVersion12);
         WriteUInt16BE(shMs, (ushort)appDataLen);
         var appPayload = new byte[appDataLen];
-        Rng.GetBytes(appPayload);
+        FillRandom(appPayload);
         shMs.Write(appPayload);
 
         var response = shMs.ToArray();
