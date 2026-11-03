@@ -265,7 +265,7 @@ public static class Obfuscated2
         if (publicKey32.Length != 32)
             throw new ArgumentException("X25519 public key must be 32 bytes", nameof(publicKey32));
 
-        using ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
+        using var ecdh = ECDiffieHellman.Create(EccNamedAlgorithm.X25519);
         ecdh.ImportParameters(new ECParameters
         {
             Curve = EccNamedAlgorithm.X25519,
@@ -273,7 +273,7 @@ public static class Obfuscated2
             Q = BuildRawPublicKey(publicKey32),
         });
 
-        using peer = ECDiffieHellman.Create();
+        using var peer = ECDiffieHellman.Create();
         peer.ImportSubjectPublicKeyInfo(BuildSpki(publicKey32), out _);
 
         // RFC 7748 shared secret: 32-byte little-endian field element.

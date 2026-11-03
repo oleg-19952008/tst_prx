@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TgWsProxy")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+cf4de427eae38390c1818d35cc04414133375266")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+cb708a51a71190082890e21894d7cf4e9647aed6")]
 [assembly: System.Reflection.AssemblyProductAttribute("TgWsProxy")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TgWsProxy")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.0.0")]

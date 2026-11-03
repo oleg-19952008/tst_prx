@@ -212,6 +212,10 @@ internal sealed class HttpLane : IAsyncDisposable
                 "POST", "/api", Host, headers, body,
                 onBodySent: () =>
                 {
+                    // Python cf_h2.py request_trace(): the httpx event
+                    // `http2.send_request_body.complete` marks BOTH sent_since[task]
+                    // and trace.sent_at for the *current* task — there is no separate
+                    // MarkBodySent() step in the original.
                     channel.MarkBodySent();
                     if (trace is not null)
                     {
@@ -337,7 +341,10 @@ internal sealed class HttpLane : IAsyncDisposable
         var waiting = Channels.Keys
             .Where(channel =>
                 ((channel.DeliveringSince is { } d && now - d >= CfH2Consts.SlowResponseSeconds)
-                 || channel.PendingAges(now).Any(age => age >= CfH2Consts.SlowResponseSeconds))
+                 // Python: only requests that are neither replay probes nor currently
+                 // streaming a body count as "waiting for headers".
+                 || channel.PendingAges(now).Any(a => !a.IsReplay && !a.IsReceiving
+                                                      && a.Age >= CfH2Consts.SlowResponseSeconds))
                 && now - channel.LastNativeSend <= CfH2Consts.ReplayMaxAge)
             .ToList();
         if (waiting.Count == 0) return;

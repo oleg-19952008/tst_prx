@@ -56,14 +56,30 @@ internal sealed class ReplayPacket
 
     public int Attempts { get; set; }
     public double LastAttemptAt { get; set; }
-    public Task? Pending { get; set; }
-    public HashSet<Task> Originals { get; } = new();
+
+    /// <summary>
+    /// Python <c>pending: Optional[asyncio.Task]</c> — the in-flight replay probe.
+    /// Requests are identified by their id (<c>Task.Id</c>, stable since .NET 8);
+    /// the owning channel resolves ids back to live request records.
+    /// </summary>
+    public long? Pending { get; set; }
+
+    /// <summary>Python <c>originals: Set[asyncio.Task]</c> — original (non-replay) requests.</summary>
+    public HashSet<long> Originals { get; } = new();
+
     public bool Retired { get; set; }
 
     /// <summary>First 24 bytes of the last accepted reply — deduplicates replays.</summary>
     public byte[]? ReplyId { get; set; }
 
     public bool Replayed => LastAttemptAt > 0 || Attempts > 0;
+
+    public static bool SameReplyId(byte[]? a, byte[]? b)
+    {
+        if (ReferenceEquals(a, b)) return true;
+        if (a is null || b is null) return false;
+        return a.AsSpan().SequenceEqual(b);
+    }
 }
 
 /// <summary>
